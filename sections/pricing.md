@@ -208,7 +208,7 @@ Format the recommendation as:
 ## Important Notes
 
 - Platform fee is 10% on Pro/Org plans, 15% on Free plan — factor this into pricing
-- Recommend the user upgrades to Pro ($8/mo) if they're on Free to reduce fees from 15% to 10%
+- Recommend the user upgrades to Pro ($7/mo) if they're on Free to reduce fees from 15% to 10%
 - Don't overcomplicate pricing — 1-2 tiers is fine for most packages
 - Prices can be changed later (unlike distribution mode which is permanent)
 - If the user is unsure, suggest starting with one tier and adding a premium tier after getting initial customers

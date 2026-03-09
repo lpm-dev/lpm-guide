@@ -1,19 +1,27 @@
 # LPM Package Quality Improvement
 
-Analyze the current package directory and provide a quality score with actionable improvements. This runs the same 27 checks as `lpm publish --check` plus deeper source code analysis.
+Analyze the current package directory and provide a quality score with actionable improvements. This runs the same checks as `lpm publish --check` plus deeper source code analysis.
 
 ## Workflow
 
-1. **Read package files** to gather context
-2. **Run all 27 quality checks** (deterministic, same as CLI)
-3. **Deep analysis** of source code beyond the CLI checks
-4. **Generate report** with score, findings, and actionable fixes
-5. **Offer to fix** issues that can be automated
+1. **Detect ecosystem** — Determine if the package is JavaScript, Swift, or XCFramework
+2. **Read package files** to gather context
+3. **Run quality checks** (deterministic, same as CLI)
+4. **Deep analysis** of source code beyond the CLI checks
+5. **Generate report** with score, findings, and actionable fixes
+6. **Offer to fix** issues that can be automated
 
 ## Step 1: Gather Context
 
-Read these files from the current directory (skip missing files silently):
+**First, detect the ecosystem:**
+- `Package.swift` present → **Swift** ecosystem (23 checks)
+- `.xcframework` bundle present → **XCFramework** ecosystem (19 checks, no Testing category)
+- `package.json` present → **JavaScript** ecosystem (26 checks)
+- If none found, ask the user what kind of package this is
 
+**Read these files from the current directory (skip missing files silently):**
+
+For JavaScript packages:
 - `package.json` (required — abort if missing)
 - `README.md` or `readme.md`
 - `CHANGELOG.md` or `changelog.md`
@@ -21,23 +29,45 @@ Read these files from the current directory (skip missing files silently):
 - `lpm.config.json` (source package config)
 - `.github/workflows/*.yml` (CI config)
 
+For Swift/XCFramework packages:
+- `Package.swift` (Swift packages)
+- `README.md` or `readme.md`
+- `CHANGELOG.md` or `changelog.md`
+- `LICENSE` or `LICENSE.md`
+- `Sources/` directory listing (Swift packages)
+- `Tests/` directory listing (Swift packages)
+
 Also scan the file tree:
 - List all files to check for test files, `.d.ts` files, CI configs
-- Count source files (`.js`, `.ts`, `.jsx`, `.tsx`)
-- Read the main entry point file (from `main`, `exports["."]`, or `module` in package.json)
+- Count source files by ecosystem (`.js`/`.ts`/`.jsx`/`.tsx` for JS; `.swift` for Swift)
+- Read the main entry point file
 
-## Step 2: Run 27 Quality Checks
+## Step 2: Run Quality Checks
 
-Run each check and record pass/fail. See [references/quality-checks.md](../references/quality-checks.md) for the full check list.
+Run each check and record pass/fail. See [references/quality-checks.md](../references/quality-checks.md) for the full check list per ecosystem.
 
-**Scoring:**
+**JavaScript scoring:**
 - Documentation: 25 points (6 checks)
-- Code Quality: 30 points (9 checks)
-- Testing: 15 points (3 checks)
+- Code Quality: 34 points (9 checks)
+- Testing: 11 points (2 checks)
 - Package Health: 30 points (9 checks)
 - Total: 100 points
 
-**Note:** 5 checks (21 points) are server-only and can only be approximated locally. The CLI shows an estimated score out of 79 possible points. The server computes the final score after merging server-only checks.
+**Swift scoring:**
+- Documentation: 25 points (6 checks)
+- Code Quality: 34 points (6 checks)
+- Testing: 11 points (2 checks)
+- Package Health: 30 points (9 checks)
+- Total: 100 points
+
+**XCFramework scoring:**
+- Documentation: 25 points (6 checks)
+- Code Quality: 45 points (4 checks)
+- Testing: None (pre-compiled binary)
+- Package Health: 30 points (9 checks)
+- Total: 100 points
+
+**Note:** Several checks are server-only and can only be approximated locally. The CLI shows an estimated score. The server computes the final score after merging server-only checks.
 
 **Tiers:**
 - 90+: Excellent
@@ -139,8 +169,8 @@ Format the report as a structured summary:
 | Category | Score | Max |
 |----------|-------|-----|
 | Documentation | {n} | 25 |
-| Code Quality | {n} | 30 |
-| Testing | {n} | 15 |
+| Code Quality | {n} | {34 for JS/Swift, 45 for XCF} |
+| Testing | {n} | {11 for JS/Swift, N/A for XCF} |
 | Package Health | {n} | 30 |
 
 ### Checks
@@ -332,5 +362,5 @@ Better types mean better IntelliSense for everyone who uses your package, and a 
 - For test generation, match the existing test framework (vitest, jest, etc.)
 - For changelog generation, read actual git history — never fabricate commit messages
 - The quality score shown here matches what `lpm publish --check` would report
-- 5 server-only checks (no-eval, no-vulnerabilities, maintenance-health, semver-consistency, author-verified) can be approximated locally by scanning source, checking git history, etc.
+- Server-only and server-augmented checks (no-eval, intellisense-coverage, has-public-api, has-doc-comments, no-vulnerabilities, maintenance-health, semver-consistency, author-verified) are approximated locally — the server re-scores these after publish using the actual tarball and database
 - If `lpm quality` is available, use `lpm quality owner.package-name --json` to fetch the real server-side score (100-point scale with all server checks resolved) instead of the estimated local score (which caps at ~79 points due to unresolvable server-only checks)

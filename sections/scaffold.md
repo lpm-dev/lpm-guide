@@ -1,11 +1,13 @@
 # LPM Package Scaffolding
 
-Create a new LPM package from scratch with the right file structure, package.json configuration, exports, types, tests, and documentation — optimized for a high quality score on first publish.
+Create a new LPM package from scratch with the right file structure, configuration, exports, types, tests, and documentation — optimized for a high quality score on first publish.
+
+Supports JavaScript, Swift, and XCFramework ecosystems.
 
 ## Workflow
 
 1. **Ask what they're building** — Understand the package type and purpose
-2. **Detect project context** — Check for existing framework, monorepo, TypeScript config
+2. **Detect project context** — Check for existing framework, monorepo, toolchain config
 3. **Generate the package** — Create all files with sensible defaults
 4. **Verify quality** — Run quality checks to confirm the scaffold scores well
 
@@ -16,36 +18,44 @@ Ask the user (skip questions they've already answered):
 | Question | Why |
 |----------|-----|
 | Package name? | Determines the `@lpm.dev/owner.package-name` identifier. Run `lpm check-name owner.package-name` to verify availability before proceeding. |
-| What does it do? (1 sentence) | Used for `description` in package.json and README |
+| What does it do? (1 sentence) | Used for `description` in package metadata and README |
 | Package type? | Determines file structure and templates |
-| TypeScript or JavaScript? | Determines tooling and file extensions |
+| Language/ecosystem? | JavaScript/TypeScript, Swift, or XCFramework |
 | Distribution mode? | Affects README content and whether to include `lpm.config.json` |
 
 ### Package Types
 
-| Type | Structure | Install command | Example |
-|------|-----------|-----------------|---------|
-| **Utility library** (`package`) | `src/` with functions, single entry point | `lpm install` | `@lpm.dev/acme.utils` |
-| **React component library** (`package`) | `src/components/` with components, Storybook-ready | `lpm install` | `@lpm.dev/acme.ui-kit` |
-| **CLI tool** (`package`) | `bin/` + `lib/`, Commander/citty setup | `lpm install` | `@lpm.dev/acme.cli` |
-| **Source package** (`source`) | Components with `lpm.config.json` for `lpm add` | `lpm add` | `@lpm.dev/acme.blocks` |
-| **MCP server** (`mcp-server`) | MCP server with tools/resources, `lpm.config.json` with `type: "mcp-server"` | `lpm add` | `@lpm.dev/acme.stripe-mcp` |
-| **VS Code extension** (`vscode-extension`) | Extension with `contributes`, `lpm.config.json` with `type: "vscode-extension"` | `lpm add` | `@lpm.dev/acme.monokai-pro` |
-| **Cursor rules** (`cursor-rules`) | AI agent config files, `lpm.config.json` with `type: "cursor-rules"` | `lpm add` | `@lpm.dev/acme.react-rules` |
-| **GitHub Action** (`github-action`) | Workflow/action files, `lpm.config.json` with `type: "github-action"` | `lpm add` | `@lpm.dev/acme.deploy-aws` |
-| **Other** (`other`) | Anything else, `lpm.config.json` with `type: "other"` | `lpm add` | `@lpm.dev/acme.custom-tool` |
+| Type | Ecosystem | Structure | Install command | Example |
+|------|-----------|-----------|-----------------|---------|
+| **Utility library** (`package`) | JS | `src/` with functions, single entry point | `lpm install` | `@lpm.dev/acme.utils` |
+| **React component library** (`package`) | JS | `src/components/` with components, Storybook-ready | `lpm install` | `@lpm.dev/acme.ui-kit` |
+| **CLI tool** (`package`) | JS | `bin/` + `lib/`, Commander/citty setup | `lpm install` | `@lpm.dev/acme.cli` |
+| **Swift library** (`package`) | Swift | `Sources/`, `Tests/`, `Package.swift` | `lpm install` | `@lpm.dev/acme.swift-utils` |
+| **XCFramework** (`xcframework`) | XCF | Pre-compiled `.xcframework` binary | `lpm install` | `@lpm.dev/acme.analytics` |
+| **Source package** (`source`) | JS | Components with `lpm.config.json` for `lpm add` | `lpm add` | `@lpm.dev/acme.blocks` |
+| **MCP server** (`mcp-server`) | JS | MCP server with tools/resources, `lpm.config.json` with `type: "mcp-server"` | `lpm add` | `@lpm.dev/acme.stripe-mcp` |
+| **VS Code extension** (`vscode-extension`) | Any | Extension with `contributes`, `lpm.config.json` with `type: "vscode-extension"` | `lpm add` | `@lpm.dev/acme.monokai-pro` |
+| **Cursor rules** (`cursor-rules`) | Any | AI agent config files, `lpm.config.json` with `type: "cursor-rules"` | `lpm add` | `@lpm.dev/acme.react-rules` |
+| **GitHub Action** (`github-action`) | Any | Workflow/action files, `lpm.config.json` with `type: "github-action"` | `lpm add` | `@lpm.dev/acme.deploy-aws` |
+| **Other** (`other`) | Any | Anything else, `lpm.config.json` with `type: "other"` | `lpm add` | `@lpm.dev/acme.custom-tool` |
 
-The value in parentheses is the `type` field in `lpm.config.json`. Types other than `package` require a `lpm.config.json` — see [Config Spec](../references/config-spec.md) for the full specification.
+The value in parentheses is the `type` field in `lpm.config.json`. Types other than `package`/`xcframework` require a `lpm.config.json` — see [Config Spec](../references/config-spec.md) for the full specification.
 
 ## Step 2: Detect Context
 
 Before generating files, check the current directory for:
 
+**JavaScript:**
 - `tsconfig.json` / `jsconfig.json` — TypeScript preference
 - `package.json` (parent) — Monorepo detection (workspaces field)
 - `.nvmrc` / `.node-version` — Node version preference
 - Existing test config — `vitest.config.*`, `jest.config.*`
 - Package manager — `pnpm-lock.yaml`, `bun.lockb`, `yarn.lock`, `package-lock.json`
+
+**Swift:**
+- `.swift-version` — Swift version preference
+- `Package.swift` (parent) — Monorepo detection
+- Existing platform targets — infer `.iOS`, `.macOS`, etc. from sibling packages
 
 Use detected context to match existing project conventions.
 
@@ -288,11 +298,159 @@ Next steps:
   3. Run "lpm publish" when ready
 ```
 
+## Swift Library Scaffold
+
+### File Structure
+
+```
+PackageName/
+├── Package.swift
+├── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── Sources/
+│   └── PackageName/
+│       └── PackageName.swift    # Main entry point
+└── Tests/
+    └── PackageNameTests/
+        └── PackageNameTests.swift
+```
+
+### Package.swift Template
+
+```swift
+// swift-tools-version: 5.9
+import PackageDescription
+
+let package = Package(
+    name: "PackageName",
+    platforms: [
+        .iOS(.v16),
+        .macOS(.v13),
+        .watchOS(.v9),
+        .tvOS(.v16),
+    ],
+    products: [
+        .library(
+            name: "PackageName",
+            targets: ["PackageName"]
+        ),
+    ],
+    dependencies: [],
+    targets: [
+        .target(
+            name: "PackageName",
+            dependencies: []
+        ),
+        .testTarget(
+            name: "PackageNameTests",
+            dependencies: ["PackageName"]
+        ),
+    ]
+)
+```
+
+### Swift Source Template (`Sources/PackageName/PackageName.swift`)
+
+```swift
+/// {description from user}
+public struct PackageName {
+    /// Creates a new instance.
+    public init() {}
+
+    /// {placeholder — fill in as you build}
+    public func hello() -> String {
+        "Hello from PackageName"
+    }
+}
+```
+
+### Swift Test Template (`Tests/PackageNameTests/PackageNameTests.swift`)
+
+```swift
+import Testing
+@testable import PackageName
+
+@Suite("PackageName Tests")
+struct PackageNameTests {
+    @Test func helloReturnsString() {
+        let sut = PackageName()
+        #expect(sut.hello().isEmpty == false)
+    }
+}
+```
+
+### Swift README Install Section
+
+```markdown
+## Installation
+
+### Swift Package Manager
+
+Add to your `Package.swift`:
+
+\`\`\`swift
+dependencies: [
+    .package(url: "https://lpm.dev/owner.package-name", from: "0.1.0"),
+]
+\`\`\`
+
+Or add via LPM:
+
+\`\`\`bash
+lpm install @lpm.dev/owner.package-name
+\`\`\`
+```
+
+### Swift Quality Score Notes
+
+The scaffold above earns these checks out of the box:
+- `has-readme` ✓, `readme-install` ✓, `readme-usage` ✓, `readme-api` ✓ — from README template
+- `has-changelog` ✓, `has-license` ✓ — from files
+- `has-platforms` ✓ — 4 platforms declared
+- `recent-tools-version` ✓ — swift-tools-version 5.9
+- `multi-platform` ✓ (4pts) — 4+ platforms
+- `has-public-api` ✓ — server-augmented (CLI passes if source files present)
+- `has-doc-comments` ✓ — server-only provisional pass; add `///` comments to maximize
+- `small-deps` ✓ (5pts) — 0 dependencies
+- `has-test-files` ✓, `has-test-script` ✓ — from testTarget
+
+Estimated scaffold score: **85+/100 (Good)**
+
+---
+
+## XCFramework Scaffold
+
+XCFrameworks are pre-compiled binaries — there is no source template to generate. Instead, scaffold the metadata files and README:
+
+### File Structure
+
+```
+FrameworkName/
+├── README.md
+├── CHANGELOG.md
+├── LICENSE
+└── FrameworkName.xcframework/
+    └── (your pre-compiled binary slices)
+```
+
+### XCFramework Quality Score Notes
+
+The key quality drivers for XCFrameworks:
+- `xcf-valid-plist` (10pts) — Info.plist must define platform slices
+- `xcf-multi-slice` (18pts) — ship as many platform/arch slices as possible (device + simulator for iOS + macOS = 18pts)
+- `xcf-architectures` (12pts) — must include arm64
+- `xcf-size` (5pts in code, 3pts in health) — keep binary under 10MB if possible
+
+Build your XCFramework with `xcodebuild -create-xcframework` combining device and simulator archives.
+
+---
+
 ## Important Notes
 
 - Always use `@lpm.dev/owner.package-name` format for the package name
-- Default to JavaScript unless the user specifies TypeScript or the project already uses it
-- Match the existing package manager if detected (pnpm, bun, yarn, npm)
-- Don't install unnecessary dependencies — keep `dependencies` minimal for a high quality score
+- Default to JavaScript unless the user specifies Swift/XCFramework or the project clearly uses it
+- Match the existing package manager if detected (pnpm, bun, yarn, npm for JS; swift-tools-version from siblings for Swift)
+- Don't add unnecessary dependencies — keep `dependencies` minimal for a high quality score
 - The scaffold should score 70+ on quality checks out of the box (Good tier)
 - If the user says "source package", follow up with the [Source Config](./source-config.md) workflow for `lpm.config.json` generation

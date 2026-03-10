@@ -1,6 +1,6 @@
 # lpm-guide
 
-Comprehensive agent skill for the entire LPM package lifecycle. One skill, eight workflows — the LLM reads only the section it needs.
+Comprehensive agent skill for the entire LPM package lifecycle. One skill, nine workflows — the LLM reads only the section it needs.
 
 ## Installation
 
@@ -16,12 +16,13 @@ Triggers automatically on phrases related to any part of the LPM package lifecyc
 |----------|----------|-------------|
 | **Scaffold** | "create package", "new package", "lpm init" | Create a new LPM package from scratch |
 | **Migrate** | "migrate to lpm", "npm to lpm", "dual publish" | Move an npm package to LPM |
-| **Improve** | "improve quality", "quality score", "prepare for publish" | Run 27 quality checks + deep analysis, offer fixes |
+| **Improve** | "improve quality", "quality score", "prepare for publish" | Run 28 quality checks + deep analysis, offer fixes |
 | **Source Config** | "lpm config", "make configurable", "lpm.config.json" | Generate configurable source package config |
 | **Distribution** | "distribution mode", "pool vs marketplace", "monetize" | Choose Private, Pool, or Marketplace |
 | **Pricing** | "pricing strategy", "how much to charge", "license type" | Design Marketplace pricing tiers |
 | **Deploy** | "deploy setup", "CI setup", "build fails 401", "LPM_TOKEN" | Configure CI/CD for install or publish |
 | **Review** | "review package", "is this safe", "compare packages" | Evaluate a package before installing |
+| **Skills** | "add skills", "install skills", "agent skills", "lpm skills" | Manage Agent Skills - validate, install, list, and clean skills for AI coding assistants |
 
 ## How It Works
 
@@ -31,7 +32,7 @@ The entry point (`SKILL.md`) is a lightweight routing table (~3KB). When trigger
 2. Reads only the relevant section file (~5-12KB)
 3. Follows the detailed instructions in that section
 
-This keeps context usage low (~8-15KB per invocation) while covering all 8 workflows.
+This keeps context usage low (~8-15KB per invocation) while covering all 9 workflows.
 
 ## Structure
 
@@ -46,9 +47,10 @@ lpm-guide/
 │   ├── distribution.md         # Distribution mode selection
 │   ├── pricing.md              # Marketplace pricing design
 │   ├── deploy.md               # CI/CD setup
-│   └── review.md               # Package evaluation
+│   ├── review.md               # Package evaluation
+│   └── skills.md               # Agent Skills management
 ├── references/
-│   ├── quality-checks.md       # All 27 quality checks
+│   ├── quality-checks.md       # All 28 quality checks
 │   └── config-spec.md          # Full lpm.config.json spec
 ├── README.md
 └── LICENSE

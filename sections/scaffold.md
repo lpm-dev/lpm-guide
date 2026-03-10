@@ -294,8 +294,9 @@ Created @lpm.dev/owner.package-name
 
 Next steps:
   1. Write your package code in src/
-  2. Run "lpm publish --check" to verify quality score
-  3. Run "lpm publish" when ready
+  2. Add Agent Skills for AI coding assistants (see "lpm skills validate")
+  3. Run "lpm publish --check" to verify quality score
+  4. Run "lpm publish" when ready
 ```
 
 ## Swift Library Scaffold
@@ -412,7 +413,7 @@ The scaffold above earns these checks out of the box:
 - `multi-platform` ✓ (4pts) — 4+ platforms
 - `has-public-api` ✓ — server-augmented (CLI passes if source files present)
 - `has-doc-comments` ✓ — server-only provisional pass; add `///` comments to maximize
-- `small-deps` ✓ (5pts) — 0 dependencies
+- `small-deps` ✓ (4pts) — 0 dependencies
 - `has-test-files` ✓, `has-test-script` ✓ — from testTarget
 
 Estimated scaffold score: **85+/100 (Good)**
@@ -438,8 +439,8 @@ FrameworkName/
 
 The key quality drivers for XCFrameworks:
 - `xcf-valid-plist` (10pts) — Info.plist must define platform slices
-- `xcf-multi-slice` (18pts) — ship as many platform/arch slices as possible (device + simulator for iOS + macOS = 18pts)
-- `xcf-architectures` (12pts) — must include arm64
+- `xcf-multi-slice` (15pts) — ship as many platform/arch slices as possible (device + simulator for iOS + macOS = 15pts)
+- `xcf-architectures` (10pts) — must include arm64
 - `xcf-size` (5pts in code, 3pts in health) — keep binary under 10MB if possible
 
 Build your XCFramework with `xcodebuild -create-xcframework` combining device and simulator archives.

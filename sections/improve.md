@@ -14,9 +14,9 @@ Analyze the current package directory and provide a quality score with actionabl
 ## Step 1: Gather Context
 
 **First, detect the ecosystem:**
-- `Package.swift` present → **Swift** ecosystem (23 checks)
-- `.xcframework` bundle present → **XCFramework** ecosystem (19 checks, no Testing category)
-- `package.json` present → **JavaScript** ecosystem (26 checks)
+- `Package.swift` present → **Swift** ecosystem (25 checks)
+- `.xcframework` bundle present → **XCFramework** ecosystem (21 checks, no Testing category)
+- `package.json` present → **JavaScript** ecosystem (28 checks)
 - If none found, ask the user what kind of package this is
 
 **Read these files from the current directory (skip missing files silently):**
@@ -47,24 +47,24 @@ Also scan the file tree:
 Run each check and record pass/fail. See [references/quality-checks.md](../references/quality-checks.md) for the full check list per ecosystem.
 
 **JavaScript scoring:**
-- Documentation: 25 points (6 checks)
-- Code Quality: 34 points (9 checks)
+- Documentation: 22 points (6 checks)
+- Code Quality: 31 points (9 checks)
 - Testing: 11 points (2 checks)
-- Package Health: 30 points (9 checks)
+- Package Health: 36 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
 - Total: 100 points
 
 **Swift scoring:**
-- Documentation: 25 points (6 checks)
-- Code Quality: 34 points (6 checks)
+- Documentation: 22 points (6 checks)
+- Code Quality: 31 points (6 checks)
 - Testing: 11 points (2 checks)
-- Package Health: 30 points (9 checks)
+- Package Health: 36 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
 - Total: 100 points
 
 **XCFramework scoring:**
-- Documentation: 25 points (6 checks)
-- Code Quality: 45 points (4 checks)
+- Documentation: 22 points (6 checks)
+- Code Quality: 40 points (4 checks)
 - Testing: None (pre-compiled binary)
-- Package Health: 30 points (9 checks)
+- Package Health: 38 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
 - Total: 100 points
 
 **Note:** Several checks are server-only and can only be approximated locally. The CLI shows an estimated score. The server computes the final score after merging server-only checks.
@@ -168,10 +168,10 @@ Format the report as a structured summary:
 ### Category Breakdown
 | Category | Score | Max |
 |----------|-------|-----|
-| Documentation | {n} | 25 |
-| Code Quality | {n} | {34 for JS/Swift, 45 for XCF} |
+| Documentation | {n} | 22 |
+| Code Quality | {n} | {31 for JS/Swift, 40 for XCF} |
 | Testing | {n} | {11 for JS/Swift, N/A for XCF} |
-| Package Health | {n} | 30 |
+| Package Health | {n} | {36 for JS/Swift, 38 for XCF} |
 
 ### Checks
 {For each check: checkmark or x, label, detail}
@@ -362,5 +362,6 @@ Better types mean better IntelliSense for everyone who uses your package, and a 
 - For test generation, match the existing test framework (vitest, jest, etc.)
 - For changelog generation, read actual git history — never fabricate commit messages
 - The quality score shown here matches what `lpm publish --check` would report
-- Server-only and server-augmented checks (no-eval, intellisense-coverage, has-public-api, has-doc-comments, no-vulnerabilities, maintenance-health, semver-consistency, author-verified) are approximated locally — the server re-scores these after publish using the actual tarball and database
+- Server-only and server-augmented checks (no-eval, intellisense-coverage, has-public-api, has-doc-comments, no-vulnerabilities, maintenance-health, semver-consistency, author-verified, has-skills, skills-comprehensive) are approximated locally — the server re-scores these after publish using the actual tarball and database
+- **Agent Skills** (has-skills +7, skills-comprehensive +3) are server-only checks. Publishing skills in `.lpm/skills/` earns up to 10 points in Package Health. See [Skills workflow](./skills.md) for how to create them.
 - If `lpm quality` is available, use `lpm quality owner.package-name --json` to fetch the real server-side score (100-point scale with all server checks resolved) instead of the estimated local score (which caps at ~79 points due to unresolvable server-only checks)

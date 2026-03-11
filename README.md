@@ -5,6 +5,8 @@ Comprehensive agent skill for the entire LPM package lifecycle. One skill, nine 
 ## Installation
 
 ```bash
+npx skills add lpm-dev/lpm-guide
+# or
 npx skills add https://github.com/lpm-dev/lpm-guide
 ```
 

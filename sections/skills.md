@@ -158,6 +158,7 @@ Create `.lpm/skills/*.md` files. Each skill has YAML frontmatter + markdown body
 ---
 name: skill-name
 description: One-line description of what this skill covers (10-500 chars)
+version: "1.2.0"
 globs:
   - "**/*.ts"
   - "**/*.tsx"
@@ -175,6 +176,7 @@ Minimum 100 characters of content.
 |-------|----------|-------------|
 | `name` | Yes | Lowercase letters, numbers, hyphens only (e.g., `getting-started`, `react-integration`) |
 | `description` | Yes | 10-500 characters explaining when this skill applies |
+| `version` | No | Package version this skill was written for. Read from `package.json` `version` field and include automatically. Helps LLMs detect stale guidance (e.g., skill says v1.0.0 but installed package is v2.0.0) |
 | `globs` | No | File patterns for when this skill is most relevant (e.g., `["**/*.tsx"]` for React files) |
 
 ### Size Limits
@@ -263,10 +265,13 @@ After generating the skill files:
    - 3+ skills: +3 additional points (`skills-comprehensive`)
    - Total potential: +10 quality points
 
-3. **Ensure `.lpm` is in the tarball** (JS packages only):
-   If `package.json` has a `"files"` field, add `".lpm"` to it so `npm pack` includes skills.
-   **Do this automatically** - read `package.json`, check if `"files"` exists, and if `.lpm` is not already listed, add it and save the file. This prevents a common mistake where authors forget and their skills silently get excluded from the tarball.
-   `lpm skills validate` also does this automatically when skills are valid.
+3. **Ensure `.lpm` is in the tarball:**
+
+   **JS packages (including source packages):** JS uses `npm pack`, which respects the `"files"` field in `package.json`. If `package.json` has a `"files"` field and `.lpm` is not listed, skills will be silently excluded from the tarball.
+   **Do this automatically** - read `package.json`, check if `"files"` exists, and if `.lpm` is not already listed, add it and save the file.
+   `lpm skills validate` also handles this automatically when skills are valid.
+
+   **Swift packages:** No action needed. Swift packages use LPM's file collector which automatically includes all files except build artifacts (`.build/`, `DerivedData/`, etc.). The `.lpm/` folder is included by default.
 
 4. **Publish:**
    ```bash
@@ -340,6 +345,7 @@ For a package like `@lpm.dev/acme.validate`:
 ---
 name: getting-started
 description: How to import and use the validate library for form and data validation
+version: "1.0.0"
 globs:
   - "**/*.ts"
   - "**/*.js"
@@ -377,6 +383,7 @@ if (!result.valid) {
 ---
 name: anti-patterns
 description: Common mistakes when using the validate library and how to avoid them
+version: "1.0.0"
 globs:
   - "**/*.ts"
   - "**/*.js"

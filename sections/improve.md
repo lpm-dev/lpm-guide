@@ -111,6 +111,27 @@ Go beyond the CLI checks by reading actual source code:
 - Flag `catch (e) {}` or `catch (e) { /* ignore */ }` patterns
 - Check if error messages include enough context
 
+### License Compatibility with Distribution Mode
+
+If the package is targeting **Marketplace** distribution (or already on Marketplace), check whether the `LICENSE` file is compatible:
+
+- **MIT, ISC, Apache-2.0, BSD** — These allow free redistribution, which conflicts with per-seat pricing. Flag this and recommend switching to a commercial license.
+- **GPL, AGPL** — Copyleft licenses prevent offering commercial redistribution rights. Flag if the author plans to offer commercial license plans.
+- **Custom/proprietary license** — Good for Marketplace. Verify it covers the key terms (no redistribution without commercial plan, seat limits, termination).
+- **No LICENSE file** — Flag as critical. Marketplace packages must have a license file.
+
+If targeting **Pool** distribution, any license works — no action needed. The Pool subscription is a platform fee, not a license fee.
+
+**Recommendation format:**
+```
+⚠️ License incompatible with Marketplace distribution
+Your package uses MIT license, which allows free redistribution.
+This conflicts with per-seat pricing — buyers could legally share the code freely.
+
+Recommended: Switch to a commercial license for Marketplace distribution.
+See: https://lpm.dev/docs/marketplace/commercial-licenses#license-file-template
+```
+
 ### Bundle Size
 
 - Flag large files (>50KB) that might be unnecessary
@@ -296,7 +317,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 | Failed Check | Automated Fix |
 |--------------|---------------|
-| No LICENSE | Generate MIT license with author from package.json |
+| No LICENSE | Generate MIT license (Pool) or commercial license template (Marketplace) with author from package.json |
+| LICENSE incompatible with distribution | If Marketplace: offer to replace with LPM Commercial License template. If Pool: no action needed (any license works) |
 | No TypeScript types | See "Improving Type Coverage" below for 3 options |
 | No test files | Generate test template using vitest (match existing test runner if possible) |
 | No CI config | Generate `.github/workflows/ci.yml` template |

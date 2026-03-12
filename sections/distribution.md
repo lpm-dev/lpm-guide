@@ -180,6 +180,28 @@ When switching distribution, all dependencies are checked:
 
 If any dependency blocks the transition, list each blocking dependency by name and explain what would need to change.
 
+## Licensing Guidance
+
+After recommending a distribution mode, check the package's `LICENSE` file:
+
+**Pool:** Any license works (MIT, ISC, Apache, etc.). The Pool subscription is a platform fee, not a license fee. No license change needed.
+
+**Marketplace:** Open-source licenses (MIT, ISC, BSD, Apache) allow free redistribution, which conflicts with per-seat pricing. Recommend:
+1. Switching to a commercial license — offer the LPM Commercial License template from `https://lpm.dev/docs/marketplace/commercial-licenses#license-file-template`
+2. Or dual-licensing: keep MIT on GitHub, use commercial license on LPM Marketplace
+
+If the author chooses Marketplace and has an open-source license, flag this before they proceed:
+
+```
+⚠️ Your package uses MIT license. Marketplace per-seat pricing requires a
+commercial license — MIT allows buyers to freely redistribute your code.
+
+Options:
+1. Switch LICENSE to LPM Commercial License (recommended for Marketplace)
+2. Dual-license: MIT on GitHub + commercial on LPM
+3. Stay with Pool instead (works with any license)
+```
+
 ## Important Notes
 
 - Never suggest switching distribution without explaining the permanence

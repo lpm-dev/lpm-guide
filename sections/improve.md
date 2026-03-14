@@ -67,7 +67,7 @@ Run each check and record pass/fail. See [references/quality-checks.md](../refer
 - Package Health: 38 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
 - Total: 100 points
 
-**Note:** Several checks are server-only and can only be approximated locally. The CLI shows an estimated score. The server computes the final score after merging server-only checks.
+**Note:** The server is the source of truth — it independently re-verifies ALL checks using the tarball, package.json, README, source text, and database. The CLI shows an estimated score. The final score may differ after server verification.
 
 **Tiers:**
 - 90+: Excellent
@@ -320,7 +320,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 | No LICENSE | Generate MIT license (Pool) or commercial license template (Marketplace) with author from package.json |
 | LICENSE incompatible with distribution | If Marketplace: offer to replace with LPM Commercial License template. If Pool: no action needed (any license works) |
 | No TypeScript types | See "Improving Type Coverage" below for 3 options |
-| No test files | Generate test template using vitest (match existing test runner if possible) |
+| No test files | Add a test framework (vitest, jest, etc.) to `devDependencies` and generate test template. The CLI scans the local project directory, and the server checks `devDependencies` for known test frameworks. |
 | No CI config | Generate `.github/workflows/ci.yml` template |
 
 ### Improving Type Coverage
@@ -384,6 +384,6 @@ Better types mean better IntelliSense for everyone who uses your package, and a 
 - For test generation, match the existing test framework (vitest, jest, etc.)
 - For changelog generation, read actual git history — never fabricate commit messages
 - The quality score shown here matches what `lpm publish --check` would report
-- Server-only and server-augmented checks (no-eval, intellisense-coverage, has-public-api, has-doc-comments, no-vulnerabilities, maintenance-health, semver-consistency, author-verified, has-skills, skills-comprehensive) are approximated locally — the server re-scores these after publish using the actual tarball and database
+- The server independently re-verifies ALL checks after publish using the actual tarball, package.json, README, source text, and database. Server-only checks (no-eval, intellisense-coverage, no-vulnerabilities, maintenance-health, semver-consistency, author-verified, has-skills, skills-comprehensive) are approximated locally
 - **Agent Skills** (has-skills +7, skills-comprehensive +3) are server-only checks. Publishing skills in `.lpm/skills/` earns up to 10 points in Package Health. See [Skills workflow](./skills.md) for how to create them.
 - If `lpm quality` is available, use `lpm quality owner.package-name --json` to fetch the real server-side score (100-point scale with all server checks resolved) instead of the estimated local score (which caps at ~79 points due to unresolvable server-only checks)

@@ -41,7 +41,7 @@ LPM supports three ecosystems with different check sets. The total is always 100
 
 | ID | Label | Points | Pass Condition |
 |----|-------|--------|----------------|
-| `has-test-files` | Has test files | 7 | Any file matching `.test.`, `.spec.`, `__tests__/`, `test/`, or `tests/` |
+| `has-test-files` | Has test files | 7 | **CLI:** Scans local project directory (not tarball) for `.test.`, `.spec.`, `__tests__/`, `test/`, or `tests/` patterns. Falls back to tarball files for backward compat. **Server:** Checks `devDependencies` for known test frameworks (vitest, jest, mocha, ava, tap, cypress, playwright, @testing-library/*, etc.). |
 | `has-test-script` | Has test script | 4 | package.json has `scripts.test` that is not the default `echo "Error: no test" && exit 1` |
 
 ### Package Health (36 points)
@@ -149,14 +149,34 @@ Same checks as Swift with these adjustments:
 
 ---
 
-## Server-Only and Server-Augmented Checks
+## Server as Source of Truth
 
-Some checks require server-side computation that the CLI cannot perform locally:
+The server independently verifies **ALL** quality checks using data it has: tarball contents, package.json, README, extracted source text, and database records. CLI-reported check results are used only for structure (IDs, categories, labels, maxPoints) — results are always overridden by server verification.
+
+This means:
+- Authors cannot inflate scores by manipulating CLI output
+- The CLI computes an **estimated score** that may differ from the final server score
+- When server data is unavailable (e.g., old CLI versions), the CLI value is preserved as a fallback
+
+### Server verification by data source
+
+| Data Source | Checks Verified |
+|-------------|----------------|
+| **README content** | `has-readme`, `readme-install`, `readme-usage`, `readme-api` |
+| **Tarball file listing** | `has-changelog`, `source-maps`, `has-types` (`.d.ts`), `has-license` (LICENSE file) |
+| **package.json fields** | `has-description`, `has-keywords`, `has-repository`, `has-homepage`, `has-test-script`, `has-engines`, `has-exports-map`, `esm-exports`, `tree-shakable`, `small-deps`, `has-test-files` (via devDependencies) |
+| **Extracted source text** | `no-eval` (JS), `intellisense-coverage` (JSDoc fallback), `has-public-api` (Swift), `has-doc-comments` (Swift) |
+| **Tarball size** | `reasonable-size` |
+| **Database/APIs** | `no-vulnerabilities`, `maintenance-health`, `semver-consistency`, `author-verified`, `has-skills`, `skills-comprehensive` |
+
+### Server-only checks (no CLI equivalent)
+
+These checks can only be computed server-side. The CLI sends a provisional value:
 
 | Check | Ecosystem | CLI Provisional | Server Behavior |
 |-------|-----------|-----------------|-----------------|
 | `no-eval` | JS | Assumes pass (3pts) | Scans source tarball for `eval(`/`new Function(` |
-| `intellisense-coverage` | JS | Passes if `.d.ts` exists, else 0 | Can award partial credit for JSDoc `@param`/`@returns` |
+| `intellisense-coverage` | JS | Passes if `.d.ts` exists, else 0 | Checks types field + `.d.ts` files + JSDoc annotations |
 | `has-public-api` | Swift | Passes if Swift source files present | Scans for `public` declarations |
 | `has-doc-comments` | Swift | Assumes pass (7pts) | Scans for `///` doc comments |
 | `no-vulnerabilities` | All | Assumes pass (5pts) | Checks vulnerability database |
@@ -167,8 +187,6 @@ Some checks require server-side computation that the CLI cannot perform locally:
 | `author-verified` | XCF | Assumes pass (4pts) | XCF keeps original 4-point value |
 | `has-skills` | All | Assumes fail (0pts) | Checks if 1+ approved skills exist for version |
 | `skills-comprehensive` | All | Assumes fail (0pts) | Checks if 3+ approved skills exist for version |
-
-The CLI computes an **estimated score** that may differ from the final server score by the points at stake in server-only checks.
 
 ---
 

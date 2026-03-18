@@ -4,13 +4,13 @@ LPM supports three ecosystems with different check sets. The total is always 100
 
 | Ecosystem | Checks | Detected by |
 |-----------|--------|-------------|
-| **JavaScript** | 28 checks | `package.json` present |
+| **JavaScript** | 29 checks | `package.json` present |
 | **Swift** | 25 checks | `Package.swift` present |
 | **XCFramework** | 21 checks | `.xcframework` bundle present |
 
 ---
 
-## JavaScript Ecosystem (28 checks)
+## JavaScript Ecosystem (29 checks)
 
 ### Documentation (22 points)
 
@@ -23,7 +23,7 @@ LPM supports three ecosystems with different check sets. The total is always 100
 | `has-changelog` | Has CHANGELOG | 3 | Any file with "changelog" in its name (case-insensitive) |
 | `has-license` | Has LICENSE file | 3 | File with "license"/"licence" in name exists, OR package.json has `license` field |
 
-### Code Quality (31 points)
+### Code Quality (29 points)
 
 | ID | Label | Points | Pass Condition |
 |----|-------|--------|----------------|
@@ -33,8 +33,8 @@ LPM supports three ecosystems with different check sets. The total is always 100
 | `tree-shakable` | Tree-shakable | 3 | package.json has `"sideEffects": false`, OR has both `"type": "module"` and `"exports"` field |
 | `no-eval` | No eval/Function() patterns | 3 | **Server-only** - CLI assumes pass. Server strips comments then scans source for `eval(` and `new Function(` |
 | `has-engines` | Has "engines" field | 1 | package.json has `engines.node` |
-| `has-exports-map` | Has "exports" map | 4 | package.json has `exports` field |
-| `small-deps` | Small dependency footprint | 4 | Based on `dependencies` count: 0 = 4pts, 1-3 = 3pts, 4-7 = 2pts, 8-15 = 1pt, 16+ = 0pts |
+| `has-exports-map` | Has "exports" map | 3 | package.json has `exports` field |
+| `small-deps` | Small dependency footprint | 3 | Based on `dependencies` count: 0 = 3pts, 1-3 = 2pts, 4-7 = 1pt, 8+ = 0pts |
 | `source-maps` | Has source maps | 1 | Any `.js.map` or `.mjs.map` file in the package |
 
 ### Testing (11 points)
@@ -44,7 +44,7 @@ LPM supports three ecosystems with different check sets. The total is always 100
 | `has-test-files` | Has test files | 7 | **CLI:** Scans local project directory (not tarball) for `.test.`, `.spec.`, `__tests__/`, `test/`, or `tests/` patterns. Falls back to tarball files for backward compat. **Server:** Checks `devDependencies` for known test frameworks (vitest, jest, mocha, ava, tap, cypress, playwright, @testing-library/*, etc.). |
 | `has-test-script` | Has test script | 4 | package.json has `scripts.test` that is not the default `echo "Error: no test" && exit 1` |
 
-### Package Health (36 points)
+### Package Health (38 points)
 
 | ID | Label | Points | Pass Condition |
 |----|-------|--------|----------------|
@@ -54,6 +54,7 @@ LPM supports three ecosystems with different check sets. The total is always 100
 | `has-homepage` | Has homepage | 1 | package.json has `homepage` field |
 | `reasonable-size` | Reasonable bundle size | 3 | Based on unpacked size: <100KB = 3pts, <500KB = 2pts, <1MB = 1pt, 1MB+ = 0pts |
 | `no-vulnerabilities` | No known vulnerabilities | 5 | **Server-only** - CLI assumes pass. Server checks vulnerability database |
+| `no-lifecycle-scripts` | No lifecycle scripts | 2 | Passes if package.json has no `preinstall`, `install`, `postinstall`, `preuninstall`, `uninstall`, or `postuninstall` scripts. Lifecycle scripts are a common supply chain attack vector. |
 | `maintenance-health` | Maintenance health | 4 | **Server-only** - CLI assumes pass. Last publish within 90 days |
 | `semver-consistency` | SemVer consistency | 4 | CLI checks valid semver format. **Server-augmented:** server also checks version history for wild jumps (>1 major skip) |
 | `author-verified` | Author verified | 3 | **Server-only** - CLI assumes pass. Author has linked GitHub or LinkedIn in profile settings |
@@ -164,7 +165,7 @@ This means:
 |-------------|----------------|
 | **README content** | `has-readme`, `readme-install`, `readme-usage`, `readme-api` |
 | **Tarball file listing** | `has-changelog`, `source-maps`, `has-types` (`.d.ts`), `has-license` (LICENSE file) |
-| **package.json fields** | `has-description`, `has-keywords`, `has-repository`, `has-homepage`, `has-test-script`, `has-engines`, `has-exports-map`, `esm-exports`, `tree-shakable`, `small-deps`, `has-test-files` (via devDependencies) |
+| **package.json fields** | `has-description`, `has-keywords`, `has-repository`, `has-homepage`, `has-test-script`, `has-engines`, `has-exports-map`, `esm-exports`, `tree-shakable`, `small-deps`, `has-test-files` (via devDependencies), `no-lifecycle-scripts` |
 | **Extracted source text** | `no-eval` (JS), `intellisense-coverage` (JSDoc fallback), `has-public-api` (Swift), `has-doc-comments` (Swift) |
 | **Tarball size** | `reasonable-size` |
 | **Database/APIs** | `no-vulnerabilities`, `maintenance-health`, `semver-consistency`, `author-verified`, `has-skills`, `skills-comprehensive` |

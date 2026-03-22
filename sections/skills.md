@@ -321,14 +321,22 @@ Ask 1-3 questions focused only on new or changed areas:
 
 ## Step 4: Apply Surgical Updates
 
-For each skill that needs updating:
+**Always update the `version` field** in the YAML frontmatter of ALL skill files to match the current `package.json` version — even if the skill content didn't change. This signals "I reviewed these skills for this version" and prevents the staleness banner on the public package page ("These skills haven't changed since v{old_version}").
+
+```bash
+# Read the current version
+cat package.json | grep '"version"'
+# Update version in every skill file frontmatter
+```
+
+For each skill that needs content updates:
 - **New API** - Add to getting-started or create new skill
 - **Removed/renamed API** - Update examples, add old pattern as anti-pattern: "Agents trained on older versions may still generate this"
 - **Changed defaults/behavior** - Update code examples, add anti-pattern if old behavior was common
 - **New framework support** - Add new integration skill
 - **New failure modes from issues** - Add to anti-patterns with issue URL as source
 
-**Do not rewrite content that is still accurate.** Preserve existing failure modes, maintainer insights, and reviewed content.
+**Do not rewrite content that is still accurate.** Preserve existing failure modes, maintainer insights, and reviewed content. But always bump the `version` field.
 
 ## Step 5: Validate
 

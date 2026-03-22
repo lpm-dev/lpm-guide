@@ -37,18 +37,31 @@ Ask the user if not clear from context:
 
 ## Step 2: Generate .npmrc
 
-The `.npmrc` file tells npm/pnpm/yarn where to find `@lpm.dev` packages.
+The `.npmrc` file tells npm/pnpm/yarn where to find packages. LPM supports two modes:
 
-### Standard .npmrc
+### Proxy Mode (Default)
+
+LPM acts as your default registry — all packages (LPM + npm) are fetched through LPM for faster, edge-cached installs.
 
 ```ini
-# LPM Registry — token provided via LPM_TOKEN environment variable
+# LPM Registry (proxy mode) — all packages route through LPM
+# Token provided via LPM_TOKEN environment variable
 # This file is safe to commit. See: https://lpm.dev/docs/ci-setup
+registry=https://lpm.dev/api/registry
+//lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
+```
+
+### Scoped Mode
+
+Only `@lpm.dev` packages route through LPM. Use when you have another default registry (e.g., Artifactory).
+
+```ini
+# LPM Registry (scoped mode) — only @lpm.dev packages route through LPM
 @lpm.dev:registry=https://lpm.dev/api/registry
 //lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
 ```
 
-This uses the `LPM_TOKEN` environment variable — the token is never hardcoded in the file.
+Use `lpm setup --scoped` or `lpm npmrc --scoped` to generate scoped mode config.
 
 ### Package Manager Variations
 
@@ -57,6 +70,14 @@ This uses the `LPM_TOKEN` environment variable — the token is never hardcoded 
 **yarn (v1)** — Same `.npmrc` format works.
 
 **yarn (v2+/berry)** — Uses `.yarnrc.yml` instead:
+
+```yaml
+# Proxy mode
+npmRegistryServer: "https://lpm.dev/api/registry"
+npmAuthToken: "${LPM_TOKEN}"
+```
+
+Or for scoped mode:
 
 ```yaml
 npmScopes:
@@ -68,6 +89,7 @@ npmScopes:
 **bun** — Uses `bunfig.toml`:
 
 ```toml
+# Scoped mode (bun uses scoped config)
 [install.scopes]
 "@lpm.dev" = { token = "$LPM_TOKEN", url = "https://lpm.dev/api/registry" }
 ```
@@ -336,7 +358,7 @@ This blocks publishing if the quality score drops below 70 (Good tier).
 
 After configuration, verify the setup:
 
-1. **Check .npmrc exists** and has the `@lpm.dev` registry line
+1. **Check .npmrc exists** and has the LPM registry configured (proxy or scoped mode)
 2. **Check LPM_TOKEN is set** on the target platform
 3. **Trigger a test build** to confirm `@lpm.dev/` packages install successfully
 4. **For authors**: Push a test tag to verify auto-publish works
@@ -367,7 +389,7 @@ Next steps:
 | `401 Unauthorized` during install | `LPM_TOKEN` not set or expired | Set/refresh token in platform env vars |
 | `404 Not Found` for `@lpm.dev/...` | `.npmrc` missing or wrong registry URL | Run `lpm setup` or create `.npmrc` manually |
 | `ENORESOLVE` / `ERESOLVE` | Package version conflict | Check `package-lock.json` is committed and up to date |
-| `ERR_SCOPE_NOT_FOUND` | npm doesn't know about `@lpm.dev` scope | Add `@lpm.dev:registry=...` to `.npmrc` |
+| `ERR_SCOPE_NOT_FOUND` | npm doesn't know about `@lpm.dev` scope | Run `lpm setup` or add `registry=https://lpm.dev/api/registry` to `.npmrc` |
 | `ECONNREFUSED` | Registry unreachable from CI | Check if CI has outbound network access, verify registry URL |
 | Token works locally but not in CI | Different token or environment | Verify the exact token value in CI matches `lpm whoami` locally |
 

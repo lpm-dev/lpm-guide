@@ -129,12 +129,18 @@ Update any import examples in the README to use the new package name. Scan for p
 Create or update `.npmrc` for LPM registry:
 
 ```ini
-# LPM Registry
-@lpm.dev:registry=https://lpm.dev/api/registry
+# LPM Registry (proxy mode — default, all packages route through LPM)
+registry=https://lpm.dev/api/registry
 //lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
 ```
 
-For dual publishing, append to existing `.npmrc` — don't replace npm registry config.
+For dual publishing, use scoped mode to avoid overriding the npm registry:
+
+```ini
+# LPM Registry (scoped mode — only @lpm.dev packages)
+@lpm.dev:registry=https://lpm.dev/api/registry
+//lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
+```
 
 ### GitHub Actions
 

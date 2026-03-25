@@ -24,7 +24,8 @@ Triggers automatically on phrases related to any part of the LPM package lifecyc
 | **Pricing** | "pricing strategy", "how much to charge", "license type" | Design Marketplace pricing tiers |
 | **Deploy** | "deploy setup", "CI setup", "build fails 401", "LPM_TOKEN" | Configure CI/CD for install or publish |
 | **Review** | "review package", "is this safe", "compare packages" | Evaluate a package before installing |
-| **Skills** | "add skills", "install skills", "agent skills", "lpm skills" | Manage Agent Skills - validate, install, list, and clean skills for AI coding assistants |
+| **Swift Registry** | "swift registry", "SE-0292", "lpm swift-registry", "Package.swift" | Set up SPM to use LPM packages via SE-0292 |
+| **Skills** | "create skills", "update skills", "agent skills", "lpm skills" | Create or update Agent Skills for AI coding assistants |
 
 ## How It Works
 
@@ -34,7 +35,7 @@ The entry point (`SKILL.md`) is a lightweight routing table (~3KB). When trigger
 2. Reads only the relevant section file (~5-12KB)
 3. Follows the detailed instructions in that section
 
-This keeps context usage low (~8-15KB per invocation) while covering all 9 workflows.
+This keeps context usage low (~8-15KB per invocation) while covering all 10 workflows.
 
 ## Structure
 
@@ -50,7 +51,8 @@ lpm-guide/
 │   ├── pricing.md              # Marketplace pricing design
 │   ├── deploy.md               # CI/CD setup
 │   ├── review.md               # Package evaluation
-│   └── skills.md               # Agent Skills management
+│   ├── swift-registry.md       # Swift Package Registry (SE-0292)
+│   └── skills.md               # Agent Skills creation & updates
 ├── references/
 │   ├── quality-checks.md       # All 28 quality checks
 │   └── config-spec.md          # Full lpm.config.json spec

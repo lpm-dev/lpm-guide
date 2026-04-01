@@ -113,6 +113,43 @@ No extra steps needed. `lpm publish` from a directory with `Package.swift` autom
 
 The published package works with both `lpm install` (SE-0292 registry) and `lpm add` (source delivery).
 
+### Controlling Published Files
+
+Swift build artifacts (`.build/`, `DerivedData/`) can be hundreds of megabytes. The CLI auto-excludes common Swift build directories, but **always add a `files` field** to `package.json` to explicitly whitelist what gets published:
+
+```json
+{
+  "name": "@lpm.dev/owner.package-name",
+  "version": "1.0.0",
+  "files": [
+    "Sources/",
+    "Tests/",
+    "Package.swift",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    ".lpm/"
+  ]
+}
+```
+
+When `files` is present, **only listed paths** are included in the tarball (plus `package.json` which is always included). Without it, the CLI falls back to heuristic exclusions which may miss project-specific artifacts.
+
+**What to include:**
+- `Sources/` — required, your library code
+- `Package.swift` — required, SPM manifest
+- `Tests/` — recommended, demonstrates quality and lets consumers verify locally
+- `README.md`, `LICENSE`, `CHANGELOG.md` — always auto-included, but listing them is explicit
+- `.lpm/` — required if you have Agent Skills (otherwise they're silently excluded)
+
+**What NOT to include:**
+- `.build/` — Swift build artifacts (often 100MB+)
+- `DerivedData/` — Xcode build cache
+- `.swiftpm/` — local SPM state
+- `*.xcworkspace/`, `*.xcodeproj/` — Xcode project files (consumers use Package.swift)
+- `Pods/` — CocoaPods artifacts
+- `node_modules/` — if using any JS tooling
+
 ## Troubleshooting
 
 ### "missing or invalid authentication credentials"

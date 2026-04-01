@@ -138,6 +138,7 @@ See: https://lpm.dev/docs/marketplace/commercial-licenses#license-file-template
 - Check for files that should be in `.npmignore` or excluded via `files` field (test fixtures, docs, config files, etc.)
 - Flag binary files or images in the package
 - If `files` field is missing, estimate published size vs. actual directory size and report the difference
+- **Swift packages:** Check for `.build/` (often 100MB+), `DerivedData/`, `.swiftpm/`, `*.xcworkspace/`, `*.xcodeproj/` — if the `files` field is missing, warn that these will bloat the tarball and add a `files` whitelist to `package.json`
 
 ### Dependency Audit
 

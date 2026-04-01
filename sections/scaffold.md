@@ -305,6 +305,7 @@ Next steps:
 
 ```
 PackageName/
+├── package.json
 ├── Package.swift
 ├── README.md
 ├── CHANGELOG.md
@@ -316,6 +317,29 @@ PackageName/
     └── PackageNameTests/
         └── PackageNameTests.swift
 ```
+
+### package.json Template
+
+```json
+{
+  "name": "@lpm.dev/owner.package-name",
+  "version": "0.1.0",
+  "description": "{user's description}",
+  "author": "{owner}",
+  "license": "MIT",
+  "files": [
+    "Sources/",
+    "Tests/",
+    "Package.swift",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "keywords": []
+}
+```
+
+The `files` field is critical — without it, Swift build artifacts (`.build/`, often 100MB+) may be included in the published tarball. This field whitelists only what consumers need.
 
 ### Package.swift Template
 

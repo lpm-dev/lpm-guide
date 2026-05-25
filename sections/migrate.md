@@ -23,11 +23,13 @@ Read and assess the current package:
 - `.npmignore` / `files` field — What gets published
 
 Check for migration blockers:
+
 - Is the name already taken on LPM? Run `lpm check-name owner.package-name` to verify availability.
 - Does it have private dependencies that would block Pool/Marketplace?
 - Is it a scoped package (`@scope/name`) that needs renaming?
 
 Check types status:
+
 - Does package.json have a `types` or `typings` field?
 - Do any `.d.ts` or `.d.mts` files exist?
 - Does `tsconfig.json` exist with `declaration: true`?
@@ -35,11 +37,11 @@ Check types status:
 
 ## Step 2: Determine Migration Type
 
-| Type | Description | When to use |
-|------|-------------|-------------|
-| **Full migration** | Replace npm with LPM entirely | New package or willing to deprecate npm version |
-| **Dual publish** | Publish to both npm and LPM | Established package, want to keep npm users |
-| **Source migration** | Convert to LPM source package (`lpm add`) | Component libraries, UI kits |
+| Type                 | Description                               | When to use                                     |
+| -------------------- | ----------------------------------------- | ----------------------------------------------- |
+| **Full migration**   | Replace npm with LPM entirely             | New package or willing to deprecate npm version |
+| **Dual publish**     | Publish to both npm and LPM               | Established package, want to keep npm users     |
+| **Source migration** | Convert to LPM source package (`lpm add`) | Component libraries, UI kits                    |
 
 Ask the user which approach they want if not clear from context.
 
@@ -92,11 +94,11 @@ Alternatively, maintain two branches or use a publish script:
 
 Find and update install instructions:
 
-| Before | After |
-|--------|-------|
-| `npm install package-name` | `lpm install @lpm.dev/owner.package-name` |
-| `yarn add package-name` | `lpm install @lpm.dev/owner.package-name` |
-| `pnpm add package-name` | `lpm install @lpm.dev/owner.package-name` |
+| Before                             | After                                             |
+| ---------------------------------- | ------------------------------------------------- |
+| `npm install package-name`         | `lpm install @lpm.dev/owner.package-name`         |
+| `yarn add package-name`            | `lpm install @lpm.dev/owner.package-name`         |
+| `pnpm add package-name`            | `lpm install @lpm.dev/owner.package-name`         |
 | `import { x } from "package-name"` | `import { x } from "@lpm.dev/owner.package-name"` |
 
 For dual publishing, show both options:
@@ -105,11 +107,13 @@ For dual publishing, show both options:
 ## Installation
 
 ### From LPM
+
 \`\`\`bash
 lpm install @lpm.dev/owner.package-name
 \`\`\`
 
 ### From npm
+
 \`\`\`bash
 npm install package-name
 \`\`\`
@@ -118,6 +122,7 @@ npm install package-name
 ### Import Paths
 
 Update any import examples in the README to use the new package name. Scan for patterns like:
+
 - `from "old-package-name"`
 - `require("old-package-name")`
 - `from "@old-scope/old-name"`
@@ -156,6 +161,7 @@ If `.github/workflows/` exists, offer to add an LPM publish step:
 ### Environment Variables
 
 Remind the user to set `LPM_TOKEN` on their deployment platform:
+
 - **GitHub Actions**: Repository Settings → Secrets → `LPM_TOKEN`
 - **Vercel**: Project Settings → Environment Variables → `LPM_TOKEN`
 - **Netlify**: Site Settings → Environment Variables → `LPM_TOKEN`
@@ -205,6 +211,6 @@ Next steps:
 - Never delete the existing npm package without explicit user approval
 - Preserve all existing package.json fields — only add/update, don't remove
 - For dual publishing, make sure both registries are configured in `.npmrc`
-- The `@lpm.dev/` scope is registered on npm's registry, so `npm install @lpm.dev/...` works after `lpm setup`
+- The `@lpm.dev/` scope is registered on npm's registry, so `npm install @lpm.dev/...` works after `lpm setup local`
 - If the package has consumers, suggest a deprecation notice on npm pointing to the LPM version
 - Check that all dependencies are available (LPM packages or npm packages both work)

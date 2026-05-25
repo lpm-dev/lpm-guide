@@ -4,10 +4,10 @@ Configure deployment platforms to install and/or publish LPM packages. Covers to
 
 ## Two Use Cases
 
-| Role | Goal | Key Config |
-|------|------|------------|
+| Role         | Goal                                      | Key Config                     |
+| ------------ | ----------------------------------------- | ------------------------------ |
 | **Consumer** | Install `@lpm.dev/` packages during build | `.npmrc` + `LPM_TOKEN` env var |
-| **Author** | Auto-publish to LPM on push/tag | `LPM_TOKEN` + publish workflow |
+| **Author**   | Auto-publish to LPM on push/tag           | `LPM_TOKEN` + publish workflow |
 
 ## Workflow
 
@@ -31,6 +31,7 @@ Check the current project:
 - `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` / `bun.lockb` — Package manager
 
 Ask the user if not clear from context:
+
 - Which platform are you deploying to?
 - Are you installing LPM packages (consumer) or publishing (author) or both?
 - Are you seeing a specific error?
@@ -61,7 +62,7 @@ Only `@lpm.dev` packages route through LPM. Use when you have another default re
 //lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
 ```
 
-Use `lpm setup --scoped` or `lpm npmrc --scoped` to generate scoped mode config.
+Use `lpm setup ci --scoped` or `lpm setup local --scoped` to generate scoped mode config.
 
 ### Package Manager Variations
 
@@ -96,11 +97,11 @@ npmScopes:
 
 ### .npmrc Placement
 
-| Scenario | Location | Notes |
-|----------|----------|-------|
-| Single project | Project root `.npmrc` | Committed to git (token is env var, not hardcoded) |
-| Monorepo | Root `.npmrc` | All workspaces inherit it |
-| Global (not recommended) | `~/.npmrc` | Only for local dev, not CI |
+| Scenario                 | Location              | Notes                                              |
+| ------------------------ | --------------------- | -------------------------------------------------- |
+| Single project           | Project root `.npmrc` | Committed to git (token is env var, not hardcoded) |
+| Monorepo                 | Root `.npmrc`         | All workspaces inherit it                          |
+| Global (not recommended) | `~/.npmrc`            | Only for local dev, not CI                         |
 
 ### Git Safety
 
@@ -111,6 +112,7 @@ The `.npmrc` file is safe to commit because it references `${LPM_TOKEN}` — the
 ### Vercel
 
 **Where to set the token:**
+
 1. Go to Project Settings → Environment Variables
 2. Add `LPM_TOKEN` with value from `lpm token rotate` or LPM dashboard
 3. Set for Production, Preview, and Development environments
@@ -118,16 +120,19 @@ The `.npmrc` file is safe to commit because it references `${LPM_TOKEN}` — the
 **Vercel auto-detects `.npmrc`** — No additional configuration needed. The install step uses the `.npmrc` in the project root.
 
 **For monorepos with Vercel:**
+
 - Place `.npmrc` in the monorepo root
 - Vercel's root directory setting doesn't affect `.npmrc` lookup — npm walks up to find it
 
 **Troubleshooting:**
+
 - If using pnpm, make sure `installCommand` isn't overriding the default
 - Vercel caches `node_modules` automatically — after adding `LPM_TOKEN`, trigger a fresh deploy
 
 ### Netlify
 
 **Where to set the token:**
+
 1. Go to Site Settings → Environment Variables
 2. Add `LPM_TOKEN`
 
@@ -136,6 +141,7 @@ No extra config — `.npmrc` is picked up automatically.
 
 **For Netlify with pnpm:**
 Add to `netlify.toml`:
+
 ```toml
 [build]
   command = "pnpm install --frozen-lockfile && pnpm build"
@@ -144,6 +150,7 @@ Add to `netlify.toml`:
 ### GitHub Actions
 
 **Where to set the token:**
+
 1. Go to Repository Settings → Secrets and variables → Actions
 2. Add `LPM_TOKEN` as a repository secret
 
@@ -162,7 +169,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - run: npm ci
         env:
@@ -178,7 +185,7 @@ jobs:
 name: Publish
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 jobs:
   publish:
@@ -208,7 +215,7 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
 
 jobs:
@@ -219,7 +226,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
       - run: npm ci
         env:
           LPM_TOKEN: ${{ secrets.LPM_TOKEN }}
@@ -245,6 +252,7 @@ jobs:
 ### GitLab CI
 
 **Where to set the token:**
+
 1. Go to Settings → CI/CD → Variables
 2. Add `LPM_TOKEN`, mark as masked and protected
 
@@ -273,19 +281,23 @@ publish:
 ### Other Platforms
 
 **AWS Amplify:**
+
 - Environment Variables in Amplify Console → App Settings → Environment Variables
 - Add `LPM_TOKEN`
 
 **Railway:**
+
 - Variables tab in the service settings
 - Add `LPM_TOKEN`
 
 **Docker:**
+
 - Pass as build arg: `docker build --build-arg LPM_TOKEN=$LPM_TOKEN .`
 - In Dockerfile: `ARG LPM_TOKEN` then `RUN npm ci`
 - Never store in the image layer — use multi-stage builds
 
 **Generic CI:**
+
 - Set `LPM_TOKEN` as an environment variable in your CI provider
 - Ensure `.npmrc` exists in the project root
 - Run `npm ci` (or equivalent) — the token is read from the environment
@@ -298,7 +310,7 @@ publish:
 - uses: actions/setup-node@v4
   with:
     node-version: 20
-    cache: 'npm'  # or 'pnpm' or 'yarn'
+    cache: "npm" # or 'pnpm' or 'yarn'
 ```
 
 This caches the global npm/pnpm/yarn cache directory. For faster installs, also cache `node_modules`:
@@ -384,14 +396,14 @@ Next steps:
 
 ### Common Errors
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `401 Unauthorized` during install | `LPM_TOKEN` not set or expired | Set/refresh token in platform env vars |
-| `404 Not Found` for `@lpm.dev/...` | `.npmrc` missing or wrong registry URL | Run `lpm setup` or create `.npmrc` manually |
-| `ENORESOLVE` / `ERESOLVE` | Package version conflict | Check `package-lock.json` is committed and up to date |
-| `ERR_SCOPE_NOT_FOUND` | npm doesn't know about `@lpm.dev` scope | Run `lpm setup` or add `registry=https://lpm.dev/api/registry` to `.npmrc` |
-| `ECONNREFUSED` | Registry unreachable from CI | Check if CI has outbound network access, verify registry URL |
-| Token works locally but not in CI | Different token or environment | Verify the exact token value in CI matches `lpm whoami` locally |
+| Error                              | Cause                                   | Fix                                                                                       |
+| ---------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `401 Unauthorized` during install  | `LPM_TOKEN` not set or expired          | Set/refresh token in platform env vars                                                    |
+| `404 Not Found` for `@lpm.dev/...` | `.npmrc` missing or wrong registry URL  | Run `lpm setup local` (or `lpm setup ci` in CI) or create `.npmrc` manually               |
+| `ENORESOLVE` / `ERESOLVE`          | Package version conflict                | Check `package-lock.json` is committed and up to date                                     |
+| `ERR_SCOPE_NOT_FOUND`              | npm doesn't know about `@lpm.dev` scope | Run `lpm setup local` or add `@lpm.dev:registry=https://lpm.dev/api/registry` to `.npmrc` |
+| `ECONNREFUSED`                     | Registry unreachable from CI            | Check if CI has outbound network access, verify registry URL                              |
+| Token works locally but not in CI  | Different token or environment          | Verify the exact token value in CI matches `lpm whoami` locally                           |
 
 ### Token Management
 

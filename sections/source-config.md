@@ -4,9 +4,9 @@ Generate `lpm.config.json` files that make LPM source packages configurable. Thi
 
 ## Context
 
-LPM (lpm.dev) is a source code package registry. Unlike npm, LPM delivers source code directly into the consumer's project. The `lpm.config.json` file (placed alongside `package.json`) lets consumers choose which components to install, which styling framework to use, what colors to apply, etc.
+`lpm add` copies source files from a package tarball into the consumer's project. It works with any registry the resolver can reach — lpm.dev, npmjs.org, or a `.npmrc`-declared private registry. The `lpm.config.json` file lives at the tarball root and lets package authors define prompts, file-copy rules, dependency injection, and import rewriting.
 
-Package name format: `@lpm.dev/owner.package-name`
+lpm.dev package name format: `@lpm.dev/owner.package-name`
 
 Consumer usage:
 ```bash
@@ -18,22 +18,26 @@ lpm add "@lpm.dev/acme.ui-kit?component=dialog,button&styling=panda"
 
 # Skip prompts, use defaults
 lpm add @lpm.dev/acme.ui-kit --yes
+
+# npm package using the same registry-agnostic source-delivery path
+lpm add lpm-source-package
 ```
 
 ## Workflow
 
 1. **Analyze the package structure** — read the directory tree to understand files and organization
 2. **Identify configurable options** — what choices should consumers make?
-3. **Generate lpm.config.json** — see [references/config-spec.md](../references/config-spec.md) for the full specification
-4. **Validate** — check against validation rules in the spec
+3. **Generate lpm.config.json** — include `$schema` and target the current schema in [references/config-spec.md](../references/config-spec.md)
+4. **Validate** — check against `https://cli.lpm.dev/schemas/lpm.config.json` or run `lpm schema lpm.config.json`
 
 ## Config Schema Field Types
 
 | Type | UI | Value |
 |------|------|-------|
+| `"string"` | Free-form input | `"components/ui"` |
 | `"select"` | Single dropdown | `"panda"` |
 | `"select"` + `"multiSelect": true` | Checkbox list | `"dialog,button"` |
-| `"boolean"` | Yes/No | `"true"` / `"false"` |
+| `"boolean"` | Yes/No | `true` / `false` |
 
 Key rules:
 - `"required": true` — consumer MUST choose (prevents "include all" for this field)
@@ -44,6 +48,9 @@ Key rules:
 
 ```json
 {
+  "$schema": "https://cli.lpm.dev/schemas/lpm.config.json",
+  "ecosystem": "js",
+  "importAlias": "@/components",
   "configSchema": {
     "component": {
       "type": "select",
@@ -112,12 +119,13 @@ Key rules:
 
 1. Use `"required": true` for fields where include-all doesn't make sense (e.g., `styling` where panda and tailwind configs conflict at the same `dest`)
 2. Use `"multiSelect": true` for fields where users want multiple items (e.g., components)
-3. Always provide `defaultConfig` so `--yes` flag works
+3. Always provide `defaultConfig` or field-level defaults so `--yes` works
 4. Use `"include": "always"` for shared utilities all components need
 5. Use `"include": "never"` for internal/test files
 6. Use directory globs (`**`) for component directories
 7. `dest` is relative to consumer's install path, not project root
-8. Declare `"importAlias": "@/"` if you use alias imports during development. The CLI will intelligently rewrite internal imports for consumers. Relative imports also work and will be rewritten when the consumer provides their alias.
+8. Declare `importAlias` if you use alias imports during development, e.g. `"@/components"`. The CLI rewrites matching imports to the consumer's detected or explicit `--alias` value.
+9. Declare `dependencies` only when you want to control dependency injection yourself; declaring it opts out of the legacy `package.json` dependency fallback.
 
 ## Full Specification
 

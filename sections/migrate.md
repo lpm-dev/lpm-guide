@@ -24,7 +24,7 @@ Read and assess the current package:
 
 Check for migration blockers:
 
-- Is the name already taken on LPM? Run `lpm check-name owner.package-name` to verify availability.
+- Is the name already taken on LPM? Check through the dashboard/API if available; do not claim a `lpm check-name` CLI exists.
 - Does it have private dependencies that would block Pool/Marketplace?
 - Is it a scoped package (`@scope/name`) that needs renaming?
 
@@ -75,18 +75,19 @@ The owner is the user's LPM username or org name. Ask if not obvious.
 
 ### For Dual Publishing
 
-Keep the original `name` in package.json. Instead, create an `lpm-package.json` override or use the `lpm publish` CLI which reads `lpm.config.json` for name overrides.
-
-Alternatively, maintain two branches or use a publish script:
+Keep the original npm `name` in `package.json`, then configure per-registry names in `lpm.json`:
 
 ```json
 {
-  "scripts": {
-    "publish:npm": "npm publish",
-    "publish:lpm": "LPM_NAME=@lpm.dev/owner.package-name lpm publish"
+  "publish": {
+    "registries": ["lpm", "npm"],
+    "lpm": { "name": "@lpm.dev/owner.package-name" },
+    "npm": { "name": "package-name", "access": "public" }
   }
 }
 ```
+
+`lpm.config.json` is for source-package `lpm add` behavior; do not use it for publish name overrides.
 
 ## Step 4: Update Documentation
 
@@ -134,18 +135,11 @@ Update any import examples in the README to use the new package name. Scan for p
 Create or update `.npmrc` for LPM registry:
 
 ```ini
-# LPM Registry (proxy mode — default, all packages route through LPM)
-registry=https://lpm.dev/api/registry
-//lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
+//lpm.dev/:_authToken=${LPM_TOKEN}
+@lpm.dev:registry=https://lpm.dev/api/registry/
 ```
 
-For dual publishing, use scoped mode to avoid overriding the npm registry:
-
-```ini
-# LPM Registry (scoped mode — only @lpm.dev packages)
-@lpm.dev:registry=https://lpm.dev/api/registry
-//lpm.dev/api/registry/:_authToken=${LPM_TOKEN}
-```
+Generate it with `lpm setup ci npmrc` for CI or `lpm setup local -d 30` for local development.
 
 ### GitHub Actions
 
@@ -166,7 +160,7 @@ Remind the user to set `LPM_TOKEN` on their deployment platform:
 - **Vercel**: Project Settings → Environment Variables → `LPM_TOKEN`
 - **Netlify**: Site Settings → Environment Variables → `LPM_TOKEN`
 
-Get the token via `lpm token rotate` or from the LPM dashboard.
+Get the token via `lpm token-rotate`, `lpm setup local`, or the LPM dashboard.
 
 For full CI/CD setup details, see [Deploy](./deploy.md).
 
@@ -210,7 +204,6 @@ Next steps:
 
 - Never delete the existing npm package without explicit user approval
 - Preserve all existing package.json fields — only add/update, don't remove
-- For dual publishing, make sure both registries are configured in `.npmrc`
-- The `@lpm.dev/` scope is registered on npm's registry, so `npm install @lpm.dev/...` works after `lpm setup local`
+- For dual publishing, keep npm publish auth separate from lpm.dev install auth. `publish.npm.*` belongs in `lpm.json`; `@lpm.dev` install routing belongs in `.npmrc`
 - If the package has consumers, suggest a deprecation notice on npm pointing to the LPM version
 - Check that all dependencies are available (LPM packages or npm packages both work)

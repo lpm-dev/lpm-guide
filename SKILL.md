@@ -1,6 +1,6 @@
 ---
 name: lpm-guide
-description: Comprehensive guide for LPM packages — create, migrate, improve quality, configure source packages, choose distribution mode, set pricing, deploy to CI/CD, review packages, and create Agent Skills. Covers JavaScript, Swift, and XCFramework ecosystems. Triggers on "create package", "new package", "scaffold package", "init package", "lpm init", "migrate to lpm", "npm to lpm", "dual publish", "convert to lpm", "improve package", "check quality", "quality score", "package health", "quality audit", "prepare for publish", "lpm publish --check", "lpm config", "make configurable", "source package config", "lpm.config.json", "add presets", "configurable package", "distribution mode", "pool vs marketplace", "monetize package", "revenue model", "how to sell", "make money from package", "go public", "distribution strategy", "pricing strategy", "set price", "pricing tiers", "how much to charge", "license type", "per seat pricing", "marketplace pricing", "deploy setup", "vercel lpm", "netlify lpm", "ci setup", "build fails", "401 during install", "LPM_TOKEN", "npmrc setup", "ci cd lpm", "auto publish", "github actions lpm", "review package", "is this package safe", "should I use", "package review", "evaluate package", "compare packages", "check package", "swift package", "swift library", "ios package", "macos package", "spm package", "swift sdk", "Package.swift", "swift registry", "SE-0292", "lpm swift-registry", "spm setup", "swift package resolve", "xcframework", "xcf package", "binary framework", "ios library", "apple platform package", "agent skills", "create skills", "update skills", "add skills", "lpm skills", "skills for package", ".lpm/skills", "ai coding assistant skills".
+description: "Guide for the LPM package lifecycle: scaffold or migrate packages, improve quality, create lpm.config.json source configs, choose Pool or Marketplace distribution, design pricing, set up CI/CD, review packages, configure Swift registry, and create or update Agent Skills. Use for triggers like create package, lpm init, migrate to lpm, npm to lpm, dual publish, quality score, lpm publish --check, source package config, lpm.config.json, distribution mode, pool vs marketplace, marketplace pricing, deploy setup, LPM_TOKEN, npmrc setup, review package, swift package, Package.swift, lpm swift-registry, SE-0292, xcframework, .lpm/skills, lpm skills, and ai coding assistant skills."
 ---
 
 # LPM Guide
@@ -9,11 +9,13 @@ Your guide for the entire LPM package lifecycle. Identify what the user needs fr
 
 ## Context
 
-LPM (lpm.dev) is a package registry. Packages use the format `@lpm.dev/owner.package-name`. Distribution modes:
+LPM is a registry-agnostic CLI and lpm.dev is the hosted registry for `@lpm.dev/*` packages. lpm.dev packages use the format `@lpm.dev/owner.package-name`. Distribution modes:
 
 - **Private** — Internal use only (default, reversible)
 - **Pool** — Available via $12/month Pool subscription, revenue shared by usage (permanent)
 - **Marketplace** — Listed for sale with per-seat or per-org licensing (permanent)
+
+Read current source or docs before asserting CLI flags, config fields, or publish behavior. Treat `lpm.config.json` as a source-package config for `lpm add`, not as a package-type manifest.
 
 ## Workflows
 

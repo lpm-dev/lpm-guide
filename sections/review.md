@@ -59,17 +59,17 @@ If the user has access to the source (installed or browsing on lpm.dev):
 
 ### Quality Score
 
-Report the package's quality score from the 27-check system:
+Report the package's quality score from the current ecosystem-aware quality system:
 
 | Category | Score | Assessment |
 |----------|-------|------------|
-| Documentation | /25 | {good/fair/poor} |
-| Code Quality | /30 | {good/fair/poor} |
-| Testing | /15 | {good/fair/poor} |
-| Package Health | /30 | {good/fair/poor} |
+| Documentation | {score/max} | {good/fair/poor} |
+| Code Quality | {score/max} | {good/fair/poor} |
+| Testing | {score/max or N/A} | {good/fair/poor or N/A} |
+| Package Health | {score/max} | {good/fair/poor} |
 | **Total** | **/100** | **{tier}** |
 
-If `lpm quality` is available, use `lpm quality owner.package-name --json` to fetch the full server-side quality report with all 27 checks resolved (including server-only checks like no-vulnerabilities, maintenance-health, author-verified). If `lpm quality` is not available, fall back to local analysis or `lpm info`.
+If `lpm quality` is available and the package is on lpm.dev, use `lpm quality owner.package-name --json` to fetch the full server-side quality report with server-only checks resolved. If `lpm quality` is not available, fall back to local analysis or `lpm info`. See [references/quality-checks.md](../references/quality-checks.md) for the current check list.
 
 ### Security Assessment
 

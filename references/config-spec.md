@@ -1,353 +1,170 @@
-# lpm.config.json Full Specification
+# lpm.config.json Specification
 
-## Table of Contents
+This reference is for source packages consumed by `lpm add`. The live schema is published at `https://cli.lpm.dev/schemas/lpm.config.json`; when in doubt, prefer that schema or run:
 
-- [Top-Level Fields](#top-level-fields)
-- [configSchema](#configschema)
-- [defaultConfig](#defaultconfig)
-- [files](#files)
-- [Include All by Default](#include-all-by-default)
-- [dependencies](#dependencies)
-- [Import Alias](#import-alias-smart-import-rewriting)
-- [Validation Rules](#validation-rules)
-
----
+```bash
+lpm schema lpm.config.json
+```
 
 ## Top-Level Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | `string` | No | Package type — determines install behavior. One of: `"source"`, `"mcp-server"`, `"vscode-extension"`, `"cursor-rules"`, `"github-action"`, `"other"`. Defaults to `"source"` if `lpm.config.json` exists. |
-| `configSchema` | `object` | No | Defines interactive config options (prompts shown to consumer) |
-| `defaultConfig` | `object` | No | Default values for config options |
-| `files` | `array` | No | File rules with conditional includes and path mapping |
-| `dependencies` | `object` | No | Conditional dependencies based on config choices |
-| `importAlias` | `string` | No | Author's import alias prefix (e.g., `"@/"`, `"~/"`). Must end with `/`. Enables smart import rewriting during `lpm add`. |
+| `$schema` | `string` | No | Recommended editor hint: `https://cli.lpm.dev/schemas/lpm.config.json` |
+| `ecosystem` | `"js"` or `"swift"` | No | Defaults to `"js"`. Drives default install-dir detection. |
+| `importAlias` | `string` | No | Author's import alias prefix, e.g. `"@/components"`. No trailing slash requirement. |
+| `configSchema` | `object` | No | Interactive config options for `lpm add`. |
+| `defaultConfig` | `object` | No | Package-level defaults, useful for `lpm add --yes`. |
+| `files` | `array` | No | Ordered file-copy rules with optional conditions and destinations. |
+| `dependencies` | `object` | No | Conditional dependencies injected into the consumer project. |
 
----
+There is no top-level `type` field and no `mcpConfig` field in the current schema.
 
-## type
-
-The `type` field declares what kind of developer tool this package is. It affects:
-- **Install behavior** — the CLI routes to a type-specific handler (e.g., MCP servers configure editors, VS Code extensions install to the extensions directory)
-- **Browse filtering** — users can filter by type on the package directory page
-- **AI analysis** — the analysis prompt is tailored to the package type
-- **Quality checks** — type-irrelevant checks are skipped (e.g., tree-shakable doesn't apply to MCP servers)
-
-### Type-Specific Config
-
-**MCP Server** (`"type": "mcp-server"`):
-```json
-{
-  "type": "mcp-server",
-  "mcpConfig": {
-    "command": "node",
-    "args": ["server.js"],
-    "env": {
-      "API_KEY": { "prompt": "Enter your API key", "required": true }
-    }
-  }
-}
-```
-The `mcpConfig` specifies how to run the MCP server. The `env` field supports prompt definitions — the CLI asks the user for values during `lpm add` and writes them into the editor's MCP config.
-
-**Cursor Rules** (`"type": "cursor-rules"`):
-```json
-{
-  "type": "cursor-rules",
-  "files": [
-    { "src": "rules/**", "dest": ".cursor/rules/" }
-  ]
-}
-```
-
-**GitHub Action** (`"type": "github-action"`):
-```json
-{
-  "type": "github-action",
-  "files": [
-    { "src": "action.yml", "dest": ".github/actions/deploy-aws/" },
-    { "src": "workflow.yml", "dest": ".github/workflows/" }
-  ]
-}
-```
-
-**Other types** (`"vscode-extension"`, `"other"`) use the standard `files` array to define where content goes. The `type` field sets default install targets when `dest` is not specified.
-
----
-
-## configSchema
-
-Defines the interactive prompts shown to consumers. Each key becomes a config parameter.
+## Minimal Example
 
 ```json
 {
+  "$schema": "https://cli.lpm.dev/schemas/lpm.config.json",
+  "ecosystem": "js",
+  "importAlias": "@/components",
   "configSchema": {
     "component": {
       "type": "select",
       "multiSelect": true,
-      "label": "Which components do you want?",
-      "options": [
-        { "value": "dialog", "label": "Dialog" },
-        { "value": "button", "label": "Button" },
-        { "value": "tabs", "label": "Tabs" }
-      ]
+      "label": "Components",
+      "options": ["dialog", "button"],
+      "default": "dialog",
+      "required": true
     },
     "styling": {
       "type": "select",
       "label": "Styling framework",
-      "required": true,
-      "options": [
-        { "value": "panda", "label": "Panda CSS" },
-        { "value": "tailwind", "label": "Tailwind CSS" }
-      ],
-      "default": "panda"
+      "options": ["panda", "tailwind"],
+      "default": "panda",
+      "required": true
     },
-    "darkMode": {
+    "withTests": {
       "type": "boolean",
-      "label": "Include dark mode styles?",
-      "default": true
+      "label": "Include tests?",
+      "default": false
     }
-  }
-}
-```
-
-### Field Types
-
-| Type | Prompt UI | Value Format |
-|------|-----------|-------------|
-| `"select"` | Single-choice dropdown | String: `"panda"` |
-| `"select"` with `"multiSelect": true` | Checkbox list | Comma-separated string: `"dialog,button"` |
-| `"boolean"` | Yes/No confirm | String: `"true"` or `"false"` |
-
-### Schema Entry Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `type` | `"select"` or `"boolean"` | Required. Field type. |
-| `label` | `string` | Display label for the prompt. |
-| `options` | `array` | Required for `"select"`. Array of `{ "value": "...", "label": "..." }` objects or plain strings. |
-| `multiSelect` | `boolean` | For `"select"` type. Shows checkbox UI instead of radio. |
-| `required` | `boolean` | If `true`, consumer MUST provide a value. Prevents "include all" behavior for this param. |
-| `default` | `any` | Default value. Can also be set in `defaultConfig`. |
-
----
-
-## defaultConfig
-
-Default values for config options. Used when the consumer doesn't provide a value.
-
-```json
-{
+  },
   "defaultConfig": {
-    "component": "button",
+    "component": "dialog",
     "styling": "panda",
-    "darkMode": true
-  }
-}
-```
-
----
-
-## files
-
-Array of file rules that control which files get copied and where.
-
-```json
-{
+    "withTests": false
+  },
   "files": [
     {
-      "src": "components/dialog/**",
-      "dest": "components/ui/dialog/",
+      "src": "src/dialog/**",
+      "dest": "dialog/",
       "include": "when",
       "condition": { "component": "dialog" }
     },
     {
-      "src": "lib/utils.js",
-      "dest": "lib/utils.js",
-      "include": "always"
+      "src": "src/button/**",
+      "dest": "button/",
+      "include": "when",
+      "condition": { "component": "button" }
     },
     {
-      "src": "internal/test-utils.js",
-      "include": "never"
+      "src": "tests/**",
+      "dest": "__tests__/",
+      "include": "when",
+      "condition": { "withTests": true }
     }
-  ]
-}
-```
-
-### File Rule Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `src` | `string` | Source path relative to package root. Supports `**` glob for directories. |
-| `dest` | `string` | Destination path relative to consumer's install target. If omitted, uses `src`. If ends with `/`, preserves filename. |
-| `include` | `string` | `"always"` (default), `"never"`, or `"when"`. |
-| `condition` | `object` | Required when `include` is `"when"`. Object of `{ "configKey": "expectedValue" }`. Multiple keys = AND logic. |
-
-### Src Glob Patterns
-
-| Pattern | Matches |
-|---------|---------|
-| `"components/dialog/Dialog.jsx"` | Exact file |
-| `"components/dialog/**"` | All files recursively in directory |
-
-### Include Behavior
-
-| `include` | Behavior |
-|-----------|----------|
-| `"always"` | Always included (default if `include` is omitted) |
-| `"never"` | Never included (exclude internal/test files) |
-| `"when"` | Included only when condition matches |
-
-### Condition Format
-
-Conditions use simple key-value objects. No expression parsing, no eval.
-
-```json
-// Single condition
-{ "component": "dialog" }
-
-// Multiple conditions (AND logic — both must match)
-{ "component": "dialog", "styling": "panda" }
-```
-
----
-
-## Include All by Default
-
-**This is the most important behavior to understand.**
-
-When a condition key is NOT provided by the consumer (not in URL params, not answered in prompts), the file is INCLUDED regardless of condition value.
-
-| Consumer provides param? | Config value | File condition | Result |
-|--------------------------|-------------|----------------|--------|
-| No | (any/default) | (any) | **INCLUDED** |
-| Yes | `"dialog"` | `"dialog"` | INCLUDED |
-| Yes | `"dialog"` | `"button"` | EXCLUDED |
-| Yes | `"dialog,button"` | `"dialog"` | INCLUDED |
-| Yes | `"dialog,button"` | `"tooltip"` | EXCLUDED |
-
-**Example:**
-```bash
-# No component filter → ALL components installed
-lpm add "@lpm.dev/acme.kit?styling=panda"
-
-# Only dialog installed
-lpm add "@lpm.dev/acme.kit?component=dialog&styling=panda"
-
-# Dialog + button installed
-lpm add "@lpm.dev/acme.kit?component=dialog,button&styling=panda"
-```
-
-**Exception:** If a configSchema field has `"required": true`, the consumer must provide a value (or the default is used and treated as explicitly provided). This prevents "include all" for fields where including all doesn't make sense (e.g., `styling` where multiple files map to the same `dest`).
-
----
-
-## dependencies
-
-Conditional dependencies based on config choices.
-
-```json
-{
+  ],
   "dependencies": {
     "styling": {
       "panda": ["@pandacss/dev"],
       "tailwind": ["tailwindcss", "autoprefixer"]
     },
-    "iconLibrary": {
-      "lucide": ["lucide-react"],
-      "heroicons": ["@heroicons/react"],
-      "custom": ["@lpm.dev/acme.icons"]
+    "withTests": {
+      "true": ["vitest"]
     }
   }
 }
 ```
 
-- Regular npm packages → installed via detected package manager (`npm install`, `pnpm add`, etc.)
-- `@lpm.dev/` packages → shown as manual install commands (`lpm add @lpm.dev/...`)
-- Dependencies are deduplicated automatically
+## configSchema
 
----
+Each key becomes an interactive prompt unless the user pre-answers it in the package spec query string.
 
-## Import Alias (Smart Import Rewriting)
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `"string"`, `"boolean"`, or `"select"` | Defaults to `"string"`. |
+| `label` | `string` | Prompt label. Defaults to the field name. |
+| `default` | `string`, `boolean`, or `number` | Initial value. Native JSON values are accepted. |
+| `required` | `boolean` | With `--yes`, fill from the default instead of skipping. Also prevents accidental include-all behavior for conflicting choices. |
+| `multiSelect` | `boolean` | Only for `select`; selected values become comma-joined. |
+| `options` | `array` | Only for `select`; plain strings or `{ "value": "...", "label": "..." }` objects. |
 
-The `importAlias` field declares the import alias prefix the author uses during development. When a consumer runs `lpm add`, the CLI uses this to identify internal imports and rewrite them to match the consumer's project setup.
+## files
 
-### How It Works
+When `files` is omitted, `lpm add` copies every file in the tarball. When present, rules are evaluated in order.
 
-1. **Author declares their alias** in `lpm.config.json`:
-   ```json
-   { "importAlias": "@/" }
-   ```
+| Property | Type | Description |
+|----------|------|-------------|
+| `src` | `string` | Required. Source path relative to the tarball root. Exact paths plus trailing `/**` and `/*` globs are supported. |
+| `dest` | `string` | Destination relative to the resolved install directory. A trailing `/` treats the value as a directory and preserves the source filename. |
+| `include` | `"always"`, `"when"`, or `"never"` | Defaults to `"always"`. |
+| `condition` | `object` | Required for `include: "when"`. Keys match resolved config values. Booleans and numbers are accepted. |
 
-2. **Consumer runs `lpm add`** and is prompted:
-   ```
-   ? Import alias for this directory? @/components/design-system
-   ```
-   The CLI auto-detects from tsconfig/jsconfig and pre-fills the suggestion.
+When a condition key was not supplied by the consumer, matching rules are included by default. Use `required: true` plus defaults for choices where "include all" would create conflicts.
 
-3. **CLI rewrites internal imports**:
-   ```javascript
-   // Author wrote:
-   import { cn } from "@/lib/utils"
-   import { DialogStyle } from "./Dialog.style"
+## dependencies
 
-   // Consumer gets (with alias @/components/design-system):
-   import { cn } from "@/components/design-system/lib/utils"
-   import { DialogStyle } from "@/components/design-system/components/dialog/Dialog.style"
-   ```
+Dependencies are conditional by config key and value:
 
-4. **External imports are never touched**: `react`, `next/link`, `@radix-ui/dialog`, etc.
+```json
+{
+  "dependencies": {
+    "icons": {
+      "lucide": ["lucide-react"],
+      "heroicons": ["@heroicons/react"],
+      "lpm": ["@lpm.dev/acme.icons@^1"]
+    }
+  }
+}
+```
 
-### When to Use
+Entries can be bare names or `name@range` specs. Bare names and dist-tags are resolved before mutating `package.json`; explicit ranges, exact versions, and wildcards are preserved. Names from npm, `.npmrc` private registries, and `@lpm.dev/*` packages all flow through the same registry-agnostic resolver.
 
-- Use when your package has multiple files that import each other
-- Use when you use alias imports (like `@/`) during development
-- Not needed for single-file packages or packages with no internal cross-references
+Declaring `dependencies` opts out of the legacy fallback from the package's own `package.json` `dependencies` and `peerDependencies`, even if no branch matches.
 
-### Without `importAlias`
+## Import Alias
 
-If `importAlias` is not set, the CLI still handles the buyer's alias prompt:
-- Relative imports between internal files are rewritten to use the buyer's alias
-- If the buyer skips the alias prompt, relative imports are left as-is (they already work)
-- The legacy `@/` prefix swap is used as a fallback when no aliases are configured
+`importAlias` tells `lpm add` what prefix the author used internally. The CLI rewrites matching imports to the consumer's detected `tsconfig.json` paths or explicit `--alias` value.
 
----
+```json
+{ "importAlias": "@/components" }
+```
 
-## Validation Rules
+Without `importAlias`, no alias-prefix rewrite is promised. Relative imports still work when the copied file layout preserves them.
 
-The CLI validates `lpm.config.json` and rejects invalid configs:
+## Consumer Usage
 
-| Rule | Constraint |
-|------|-----------|
-| File size | Max 1 MB |
-| File rules count | Max 1000 |
-| `src` paths | Must be relative (no leading `/`), no path traversal (`..`) |
-| `dest` paths | Must be relative (no leading `/`), no path traversal (`..`) |
-| `configSchema` types | Must be `"select"` or `"boolean"` |
-| `select` fields | Must have non-empty `options` array |
-| `include` values | Must be `"always"`, `"never"`, or `"when"` |
-| `include: "when"` | Must have a `condition` object |
-| `importAlias` value | Must be a string ending with `/` (e.g., `"@/"`, `"~/"`) |
+```bash
+lpm add @lpm.dev/acme.kit
+lpm add "@lpm.dev/acme.kit?component=dialog&styling=panda"
+lpm add "@lpm.dev/acme.kit?component=dialog,button&styling=panda"
+lpm add @lpm.dev/acme.kit --yes
+```
 
----
+`lpm add` can also consume npm-published source packages:
+
+```bash
+lpm add lpm-source-package
+```
 
 ## File Placement
 
-The `lpm.config.json` file goes in the package root, alongside `package.json`:
+Place `lpm.config.json` at the tarball root:
 
-```
+```text
 my-package/
 ├── package.json
-├── lpm.config.json    ← HERE
-├── components/
-│   ├── dialog/
-│   └── button/
-├── styles/
-│   ├── panda.config.js
-│   └── tailwind.config.js
-└── lib/
-    └── utils.js
+├── lpm.config.json
+├── src/
+└── README.md
 ```
-
-When the package is published with `lpm publish`, the `lpm.config.json` is included in the tarball and read by the CLI during `lpm add`.

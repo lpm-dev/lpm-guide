@@ -17,7 +17,7 @@ Ask the user (skip questions they've already answered):
 
 | Question | Why |
 |----------|-----|
-| Package name? | Determines the `@lpm.dev/owner.package-name` identifier. Run `lpm check-name owner.package-name` to verify availability before proceeding. |
+| Package name? | Determines the `@lpm.dev/owner.package-name` identifier for lpm.dev packages. Check availability through the dashboard/API when available; do not claim a `lpm check-name` CLI exists. |
 | What does it do? (1 sentence) | Used for `description` in package metadata and README |
 | Package type? | Determines file structure and templates |
 | Language/ecosystem? | JavaScript/TypeScript, Swift, or XCFramework |
@@ -32,14 +32,13 @@ Ask the user (skip questions they've already answered):
 | **CLI tool** (`package`) | JS | `bin/` + `lib/`, Commander/citty setup | `lpm install` | `@lpm.dev/acme.cli` |
 | **Swift library** (`package`) | Swift | `Sources/`, `Tests/`, `Package.swift` | `lpm install` | `@lpm.dev/acme.swift-utils` |
 | **XCFramework** (`xcframework`) | XCF | Pre-compiled `.xcframework` binary | `lpm install` | `@lpm.dev/acme.analytics` |
-| **Source package** (`source`) | JS | Components with `lpm.config.json` for `lpm add` | `lpm add` | `@lpm.dev/acme.blocks` |
-| **MCP server** (`mcp-server`) | JS | MCP server with tools/resources, `lpm.config.json` with `type: "mcp-server"` | `lpm add` | `@lpm.dev/acme.stripe-mcp` |
-| **VS Code extension** (`vscode-extension`) | Any | Extension with `contributes`, `lpm.config.json` with `type: "vscode-extension"` | `lpm add` | `@lpm.dev/acme.monokai-pro` |
-| **Cursor rules** (`cursor-rules`) | Any | AI agent config files, `lpm.config.json` with `type: "cursor-rules"` | `lpm add` | `@lpm.dev/acme.react-rules` |
-| **GitHub Action** (`github-action`) | Any | Workflow/action files, `lpm.config.json` with `type: "github-action"` | `lpm add` | `@lpm.dev/acme.deploy-aws` |
-| **Other** (`other`) | Any | Anything else, `lpm.config.json` with `type: "other"` | `lpm add` | `@lpm.dev/acme.custom-tool` |
+| **Source package** | JS/Swift | Components/templates with `lpm.config.json` for `lpm add` | `lpm add` | `@lpm.dev/acme.blocks` |
+| **MCP server** | JS | Runtime dependency plus MCP setup docs; use package metadata and docs, not `lpm.config.json.type` | `lpm install` or tool-specific setup | `@lpm.dev/acme.stripe-mcp` |
+| **Editor/rules package** | Any | Rules, prompts, or editor config delivered as source files with `files[]` rules | `lpm add` | `@lpm.dev/acme.react-rules` |
+| **GitHub Action/template** | Any | Workflow/action files copied into a repo with `files[]` rules | `lpm add` | `@lpm.dev/acme.deploy-aws` |
+| **Other source tool** | Any | Any tarball content copied into a project | `lpm add` | `@lpm.dev/acme.custom-tool` |
 
-The value in parentheses is the `type` field in `lpm.config.json`. Types other than `package`/`xcframework` require a `lpm.config.json` — see [Config Spec](../references/config-spec.md) for the full specification.
+Do not put package-type labels in `lpm.config.json`; the current source config has no top-level `type`. Use `lpm.config.json` only for `lpm add` behavior — see [Config Spec](../references/config-spec.md) for the current schema.
 
 ## Step 2: Detect Context
 
@@ -205,12 +204,13 @@ src/
 
 **Source package:**
 ```
-src/
-├── components/
-│   └── Example/
-│       ├── Example.jsx
-│       └── Example.style.jsx  # If styling option selected
-├── lpm.config.json
+package-name/
+├── lpm.config.json             # tarball root
+└── src/
+    └── components/
+        └── Example/
+            ├── Example.jsx
+            └── Example.style.jsx  # If styling option selected
 ```
 
 ### TypeScript Project Setup

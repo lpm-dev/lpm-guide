@@ -1,6 +1,6 @@
 # LPM Distribution Advisor
 
-Help package authors choose the right distribution mode for their LPM package. This is the highest-stakes decision an author makes — Pool and Marketplace transitions are **permanent and irreversible**.
+Help package authors choose the right distribution mode for their LPM package. This is the highest-stakes decision an author makes — switching to Pool or Marketplace is **permanent and irreversible**.
 
 ## Distribution Modes
 
@@ -193,7 +193,7 @@ After recommending a distribution mode, check the package's `LICENSE` file:
 If the author chooses Marketplace and has an open-source license, flag this before they proceed:
 
 ```
-⚠️ Your package uses MIT license. Marketplace per-seat pricing requires a
+Your package uses MIT license. Marketplace per-seat pricing requires a
 commercial license — MIT allows buyers to freely redistribute your code.
 
 Options:

@@ -16,7 +16,7 @@ Analyze the current package directory and provide a quality score with actionabl
 **First, detect the ecosystem:**
 - `Package.swift` present → **Swift** ecosystem (25 checks)
 - `.xcframework` bundle present → **XCFramework** ecosystem (21 checks, no Testing category)
-- `package.json` present → **JavaScript** ecosystem (28 checks)
+- `package.json` present → **JavaScript** ecosystem (29 checks)
 - If none found, ask the user what kind of package this is
 
 **Read these files from the current directory (skip missing files silently):**
@@ -46,26 +46,7 @@ Also scan the file tree:
 
 Run each check and record pass/fail. See [references/quality-checks.md](../references/quality-checks.md) for the full check list per ecosystem.
 
-**JavaScript scoring:**
-- Documentation: 22 points (6 checks)
-- Code Quality: 31 points (9 checks)
-- Testing: 11 points (2 checks)
-- Package Health: 36 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
-- Total: 100 points
-
-**Swift scoring:**
-- Documentation: 22 points (6 checks)
-- Code Quality: 31 points (6 checks)
-- Testing: 11 points (2 checks)
-- Package Health: 36 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
-- Total: 100 points
-
-**XCFramework scoring:**
-- Documentation: 22 points (6 checks)
-- Code Quality: 40 points (4 checks)
-- Testing: None (pre-compiled binary)
-- Package Health: 38 points (11 checks, includes has-skills +7 and skills-comprehensive +3)
-- Total: 100 points
+Use [references/quality-checks.md](../references/quality-checks.md) for the current ecosystem-specific point tables. Do not duplicate category totals in this workflow unless you have just verified them from source. Always report the total on a 100-point scale.
 
 **Note:** The server is the source of truth — it independently re-verifies ALL checks using the tarball, package.json, README, source text, and database. The CLI shows an estimated score. The final score may differ after server verification.
 
@@ -124,7 +105,7 @@ If targeting **Pool** distribution, any license works — no action needed. The 
 
 **Recommendation format:**
 ```
-⚠️ License incompatible with Marketplace distribution
+License incompatible with Marketplace distribution
 Your package uses MIT license, which allows free redistribution.
 This conflicts with per-seat pricing — buyers could legally share the code freely.
 
@@ -384,7 +365,7 @@ Better types mean better IntelliSense for everyone who uses your package, and a 
 - For README generation, read actual source code to ensure accuracy — never guess at function signatures
 - For test generation, match the existing test framework (vitest, jest, etc.)
 - For changelog generation, read actual git history — never fabricate commit messages
-- The quality score shown here matches what `lpm publish --check` would report
+- The quality score shown here should match the current local `lpm publish --check` estimate
 - The server independently re-verifies ALL checks after publish using the actual tarball, package.json, README, source text, and database. Server-only checks (no-eval, intellisense-coverage, no-vulnerabilities, maintenance-health, semver-consistency, author-verified, has-skills, skills-comprehensive) are approximated locally
 - **Agent Skills** (has-skills +7, skills-comprehensive +3) are server-only checks. Publishing skills in `.lpm/skills/` earns up to 10 points in Package Health. See [Skills workflow](./skills.md) for how to create them.
-- If `lpm quality` is available, use `lpm quality owner.package-name --json` to fetch the real server-side score (100-point scale with all server checks resolved) instead of the estimated local score (which caps at ~79 points due to unresolvable server-only checks)
+- `lpm quality owner.package-name --json` is lpm.dev-only. When available and authenticated, use it to fetch the real server-side score instead of the estimated local score.

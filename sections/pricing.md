@@ -10,7 +10,7 @@ Authors sell packages through the LPM Marketplace. Key facts:
 - **Payments**: Stripe Connect (authors receive direct payouts)
 - **License types**: Individual (per-seat) or Organization (flat price)
 - **Commercial licenses**: Optional add-on that allows buyers to bundle/redistribute
-- **No free tier on Marketplace** — For free distribution, use Pool instead
+- **Marketplace is for direct paid access** — For subscription-included access, use Pool instead
 
 ## Workflow
 
@@ -120,7 +120,7 @@ Ask: "How much time/money does this save the buyer per month?"
 
 ### Competitive Anchoring
 
-If `lpm marketplace compare --json` is available, use it to fetch real competitor pricing data. Run `lpm marketplace compare <category-or-package> --json` to get actual price ranges, quality scores, and download counts for comparable packages in the same category.
+Do not claim there is a `lpm marketplace compare` CLI command. Use package pages, dashboard data, public Marketplace listings, and competitor research for pricing anchors.
 
 If competitors exist:
 - **No competitors**: Price on value (you have pricing power)
@@ -208,7 +208,7 @@ Format the recommendation as:
 ## Important Notes
 
 - Platform fee is 10% on Pro/Org plans, 15% on Free plan — factor this into pricing
-- Recommend the user upgrades to Pro ($7/mo) if they're on Free to reduce fees from 15% to 10%
+- Recommend the user upgrades to Pro ($8/mo) if they're on Free and expected Marketplace revenue justifies reducing fees from 15% to 10%
 - Don't overcomplicate pricing — 1-2 tiers is fine for most packages
 - Prices can be changed later (unlike distribution mode which is permanent)
 - If the user is unsure, suggest starting with one tier and adding a premium tier after getting initial customers

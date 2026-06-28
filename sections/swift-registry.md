@@ -16,7 +16,7 @@ This does three things:
 2. Authenticates with the user's LPM token
 3. Installs LPM's signing certificate to `~/.swiftpm/security/trusted-root-certs/lpm.der`
 
-**Prerequisites:** `lpm login` and Swift 5.9+. Run from a directory with `Package.swift`.
+**Prerequisites:** Swift 5.9+ on PATH and `lpm login`. lpm.dev Swift package metadata and archives are access-controlled: private packages require owner/org access, Pool packages require Pool access, and Marketplace packages require a license.
 
 ### Manual setup
 
@@ -33,7 +33,7 @@ curl -o ~/.swiftpm/security/trusted-root-certs/lpm.der https://lpm.dev/api/swift
 lpm --registry http://localhost:3000 swift-registry
 ```
 
-HTTP registries skip login (SPM refuses auth over HTTP) and certificate installation.
+HTTP registries skip SPM login because SPM refuses auth over HTTP. `lpm swift-registry` still sets the scope and configures signing trust/certificate files for the local registry.
 
 ## Installing Packages
 
@@ -58,12 +58,12 @@ let package = Package(
     name: "MyApp",
     platforms: [.macOS(.v12), .iOS(.v15)],
     dependencies: [
-        .package(id: "lpmdev.acme-swift-logger", from: "1.0.0"),
+        .package(id: "lpmdev.acme_swift-logger", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.60.0"),
     ],
     targets: [
         .target(name: "MyApp", dependencies: [
-            .product(name: "Logger", package: "lpmdev.acme-swift-logger"),
+            .product(name: "Logger", package: "lpmdev.acme_swift-logger"),
             .product(name: "NIOCore", package: "swift-nio"),
         ]),
     ]
@@ -78,10 +78,10 @@ LPM names map to SE-0292 identifiers:
 
 | LPM                           | SE-0292                     |
 | ----------------------------- | --------------------------- |
-| `@lpm.dev/acme.swift-logger`  | `lpmdev.acme-swift-logger`  |
-| `@lpm.dev/acme.design-system` | `lpmdev.acme-design-system` |
+| `@lpm.dev/acme.swift-logger`  | `lpmdev.acme_swift-logger`  |
+| `@lpm.dev/acme.design-system` | `lpmdev.acme_design-system` |
 
-Pattern: `lpmdev.{owner}-{package-name}`
+Pattern: `lpmdev.{owner}_{package-name}`. The underscore is reserved as the unambiguous owner/package separator.
 
 ## Package Signing
 
@@ -128,7 +128,7 @@ Swift build artifacts (`.build/`, `DerivedData/`) can be hundreds of megabytes. 
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
-    ".lpm/"
+    ".lpm/skills"
   ]
 }
 ```
@@ -140,7 +140,7 @@ When `files` is present, **only listed paths** are included in the tarball (plus
 - `Package.swift` — required, SPM manifest
 - `Tests/` — recommended, demonstrates quality and lets consumers verify locally
 - `README.md`, `LICENSE`, `CHANGELOG.md` — always auto-included, but listing them is explicit
-- `.lpm/` — required if you have Agent Skills (otherwise they're silently excluded)
+- `.lpm/skills` — required if you have Agent Skills (otherwise they're silently excluded)
 
 **What NOT to include:**
 - `.build/` — Swift build artifacts (often 100MB+)

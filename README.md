@@ -1,6 +1,6 @@
 # lpm-guide
 
-Comprehensive agent skill for the entire LPM package lifecycle. One skill, nine workflows — the LLM reads only the section it needs.
+Comprehensive agent skill for the entire LPM package lifecycle. One skill, ten workflows — the LLM reads only the section it needs.
 
 ## Installation
 
@@ -18,7 +18,7 @@ Triggers automatically on phrases related to any part of the LPM package lifecyc
 |----------|----------|-------------|
 | **Scaffold** | "create package", "new package", "lpm init" | Create a new LPM package from scratch |
 | **Migrate** | "migrate to lpm", "npm to lpm", "dual publish" | Move an npm package to LPM |
-| **Improve** | "improve quality", "quality score", "prepare for publish" | Run 28 quality checks + deep analysis, offer fixes |
+| **Improve** | "improve quality", "quality score", "prepare for publish" | Analyze package quality, run checks, offer fixes |
 | **Source Config** | "lpm config", "make configurable", "lpm.config.json" | Generate configurable source package config |
 | **Distribution** | "distribution mode", "pool vs marketplace", "monetize" | Choose Private, Pool, or Marketplace |
 | **Pricing** | "pricing strategy", "how much to charge", "license type" | Design Marketplace pricing tiers |
@@ -54,7 +54,7 @@ lpm-guide/
 │   ├── swift-registry.md       # Swift Package Registry (SE-0292)
 │   └── skills.md               # Agent Skills creation & updates
 ├── references/
-│   ├── quality-checks.md       # All 28 quality checks
+│   ├── quality-checks.md       # Ecosystem-specific quality checks
 │   └── config-spec.md          # Full lpm.config.json spec
 ├── README.md
 └── LICENSE

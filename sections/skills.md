@@ -1,6 +1,6 @@
 # LPM Agent Skills Creation
 
-Create Agent Skills for your LPM package - structured guidelines that help AI coding assistants use your package correctly. Skills are `.md` files in `.lpm/skills/` that get published with your package and served to AI tools via the MCP server.
+Create Agent Skills for your LPM package - structured guidelines that help AI coding assistants use your package correctly. Skills are `.md` files in `.lpm/skills/` that get published with your package, installed into consumer projects, and optionally linked from supported editor rule files.
 
 Skills earn **+7 quality points** (`has-skills`) and an additional **+3 points** (`skills-comprehensive`) when you have 3 or more skills.
 
@@ -265,13 +265,13 @@ After generating the skill files:
    - 3+ skills: +3 additional points (`skills-comprehensive`)
    - Total potential: +10 quality points
 
-3. **Ensure `.lpm` is in the tarball:**
+3. **Ensure `.lpm/skills` is in the tarball:**
 
-   **JS packages (including source packages):** JS uses `npm pack`, which respects the `"files"` field in `package.json`. If `package.json` has a `"files"` field and `.lpm` is not listed, skills will be silently excluded from the tarball.
-   **Do this automatically** - read `package.json`, check if `"files"` exists, and if `.lpm` is not already listed, add it and save the file.
-   `lpm skills validate` also handles this automatically when skills are valid.
+   **JS packages (including source packages):** JS uses `npm pack`, which respects the `"files"` field in `package.json`. If `package.json` has a `"files"` field and `.lpm/skills` is not listed, skills can be excluded from the tarball.
+   **Do this automatically** - read `package.json`, check if `"files"` exists, and if `.lpm/skills` is not already listed, add it and save the file. Do not add `.lpm` broadly; it can contain local project data.
+   `lpm skills validate` checks local size and shape rules. It does not edit `package.json`; the publish path can add `.lpm/skills` when valid skills are present.
 
-   **Swift packages:** No action needed. Swift packages use LPM's file collector which automatically includes all files except build artifacts (`.build/`, `DerivedData/`, etc.). The `.lpm/` folder is included by default.
+   **Swift packages:** No action needed unless a publish allowlist is present. If a package uses an explicit `files` list, include `.lpm/skills`.
 
 4. **Publish:**
    ```bash
@@ -428,7 +428,7 @@ Source: README.md - Error Handling section
 ## Important Notes
 
 - The `globs` field helps AI tools show the right skill at the right time (e.g., React skills when editing `.tsx` files)
-- After publish, skills are served via `lpm skills install` and through the LPM MCP server
+- After publish, skills are extracted from the tarball, security-scanned, and made available through supported LPM skill/editor install flows
 - Skills go through a security scan after publish
 - In Update Mode, preserve content that is still accurate - surgical updates, not full rewrites
 - See [Improve](./improve.md) for full quality score breakdown

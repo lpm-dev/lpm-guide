@@ -1,6 +1,6 @@
 ---
 name: lpm-guide
-description: "Guide for the LPM package lifecycle: scaffold or migrate packages, improve quality, create lpm.config.json source configs, choose Pool or Marketplace distribution, design pricing, set up CI/CD, review packages, configure Swift registry, and create or update Agent Skills. Use for triggers like create package, lpm init, migrate to lpm, npm to lpm, dual publish, quality score, lpm publish --check, source package config, lpm.config.json, distribution mode, pool vs marketplace, marketplace pricing, deploy setup, LPM_TOKEN, npmrc setup, review package, swift package, Package.swift, lpm swift-registry, SE-0292, xcframework, .lpm/skills, lpm skills, and ai coding assistant skills."
+description: "Guide for the LPM package lifecycle: scaffold or migrate packages, improve quality, create lpm.config.json source configs, choose Pool or Marketplace distribution, design pricing, set up CI/CD, review packages, configure Swift registry, and create or update Agent Skills. Use for triggers like create package, lpm init, migrate to lpm, npm to lpm, dual publish, quality score, lpm publish --check, source package config, lpm.config.json, distribution mode, pool vs marketplace, marketplace pricing, deploy setup, LPM_TOKEN, npmrc setup, review package, swift package, Package.swift, lpm swift-registry, SE-0292, .lpm/skills, lpm skills, and ai coding assistant skills."
 ---
 
 # LPM Guide

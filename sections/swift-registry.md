@@ -4,17 +4,28 @@ Guide for setting up and using LPM's native SPM integration. LPM implements SE-0
 
 ## Consumer Setup
 
-### One-command setup
+### Normal install flow
 
 ```bash
-lpm swift-registry
+lpm login
+lpm install @lpm.dev/acme.swift-logger
 ```
 
-This does three things:
+`lpm install` is the primary workflow. Before it invokes `swift package resolve`, the CLI automatically:
 
 1. Sets SPM's `lpmdev` scope to `https://lpm.dev/api/swift-registry`
 2. Authenticates with the user's LPM token
 3. Installs LPM's signing certificate to `~/.swiftpm/security/trusted-root-certs/lpm.der`
+4. Configures signing trust for the `lpmdev` scope
+
+### Repair or certificate refresh
+
+```bash
+lpm swift-registry
+lpm swift-registry --force
+```
+
+Use the explicit command to repair Registry configuration. Use `--force` when the configuration or signing certificate is stale or corrupt, or after a documented certificate rotation. It is not a prerequisite for a normal install.
 
 **Prerequisites:** Swift 5.9+ on PATH and `lpm login`. lpm.dev Swift package metadata and archives are access-controlled: private packages require owner/org access, Pool packages require Pool access, and Marketplace packages require a license.
 
@@ -43,10 +54,12 @@ lpm install @lpm.dev/acme.swift-logger
 
 The CLI automatically:
 1. Fetches package metadata (version, SE-0292 identifier, product name)
-2. Edits `Package.swift` — adds `.package(id:)` to dependencies and `.product(name:)` to target
-3. Runs `swift package resolve`
+2. Selects an eligible non-test target
+3. Edits `Package.swift` — adds `.package(id:)` to dependencies and `.product(name:)` to the selected target
+4. Configures the Registry scope, authentication, certificate, and signing trust when needed
+5. Runs `swift package resolve`
 
-If multiple targets exist, prompts which one. Use `--yes` to skip prompts.
+One eligible target is selected automatically. With multiple eligible targets, a normal install prompts for the target. `-y` / `--yes` skips the prompt and selects the first eligible target, matching the selector's default.
 
 ### Result in Package.swift
 
@@ -87,7 +100,8 @@ Pattern: `lpmdev.{owner}_{package-name}`. The underscore is reserved as the unam
 
 All published Swift packages are signed with CMS detached signatures (ECDSA P-256, `cms-1.0.0`).
 
-- `lpm swift-registry` installs the certificate automatically
+- `lpm install` configures the certificate automatically when setup is needed
+- `lpm swift-registry --force` repairs stale or corrupt configuration and refreshes the certificate
 - Without cert: SPM warns `signer is not trusted` but still resolves
 - To suppress: `swift package resolve --resolver-signing-entity-checking warn`
 
@@ -154,15 +168,14 @@ When `files` is present, **only listed paths** are included in the tarball (plus
 
 ### "missing or invalid authentication credentials"
 
-Run `lpm swift-registry` to re-authenticate, or check `swift package-registry login`.
+The normal `lpm install` flow configures authentication automatically. If the local Registry setup is stale or corrupt, run `lpm swift-registry --force`; otherwise check the inherited Swift output and `swift package-registry login`.
 
 ### "signer is not trusted" warning
 
-Install the signing certificate:
+Repair and refresh the signing certificate:
 
 ```bash
-mkdir -p ~/.swiftpm/security/trusted-root-certs
-curl -o ~/.swiftpm/security/trusted-root-certs/lpm.der https://lpm.dev/api/swift-registry/certificate
+lpm swift-registry --force
 ```
 
 ### "no versions match the requirement"

@@ -1,12 +1,11 @@
 # LPM Quality Checks Reference
 
-LPM supports three ecosystems with different check sets. The total is always 100 points, but the checks and categories differ.
+LPM supports JavaScript and Swift packages with different check sets. The total is always 100 points, but the checks and categories differ.
 
 | Ecosystem | Checks | Detected by |
 |-----------|--------|-------------|
 | **JavaScript** | 29 checks | `package.json` present |
 | **Swift** | 25 checks | `Package.swift` present |
-| **XCFramework** | 21 checks | `.xcframework` bundle present |
 
 ---
 
@@ -114,42 +113,6 @@ Swift packages use `Package.swift` instead of `package.json`. Documentation and 
 
 ---
 
-## XCFramework Ecosystem (21 checks)
-
-XCFrameworks are pre-compiled binary bundles (`.xcframework`). There is **no Testing category** - the binary is already compiled. Code Quality checks validate the binary's slice coverage and architecture support.
-
-### Documentation (22 points)
-
-Same 6 checks as Swift.
-
-### Code Quality (40 points)
-
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `xcf-valid-plist` | Valid Info.plist | 10 | Info.plist exists and defines at least one platform slice |
-| `xcf-multi-slice` | Supports multiple platform slices | 15 | 4+ platforms: 15pts, 3: 11pts, 2: 9pts, 1: 4pts, 0: 0pts |
-| `xcf-size` | Reasonable framework size (binary) | 5 | <=10MB: 5pts, <=50MB: 4pts, <=100MB: 3pts, <=200MB: 1pt, >200MB: 0pts |
-| `xcf-architectures` | Supports arm64 architecture | 10 | arm64 present in any slice's architecture list |
-
-### Testing
-
-None - XCFrameworks are pre-compiled binaries. Testing is done in the source project that produces the framework.
-
-### Package Health (38 points)
-
-Same checks as Swift with these adjustments:
-
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `reasonable-size` | Reasonable framework size | 3 | <=10MB: 3pts, <=50MB: 2pts, <=100MB: 1pt, >100MB: 0pts |
-| `maintenance-health` | Maintenance health | 5 | **Server-only** - CLI assumes pass (XCF keeps original value) |
-| `author-verified` | Author verified | 4 | **Server-only** - CLI assumes pass (XCF keeps original value) |
-| `has-skills` | Has Agent Skills | 7 | **Server-only** - 1+ approved Agent Skills |
-| `skills-comprehensive` | Comprehensive Agent Skills | 3 | **Server-only** - 3+ approved Agent Skills |
-| *(all others)* | Same as Swift | - | Same conditions as Swift health checks |
-
----
-
 ## Server as Source of Truth
 
 The server independently verifies **ALL** quality checks using data it has: tarball contents, package.json, README, extracted source text, and database records. CLI-reported check results are used only for structure (IDs, categories, labels, maxPoints) — results are always overridden by server verification.
@@ -182,10 +145,8 @@ These checks can only be computed server-side. The CLI sends a provisional value
 | `has-doc-comments` | Swift | Assumes pass (7pts) | Scans for `///` doc comments |
 | `no-vulnerabilities` | All | Assumes pass (5pts) | Checks vulnerability database |
 | `maintenance-health` | JS/Swift | Assumes pass (4pts) | Checks last publish date in database |
-| `maintenance-health` | XCF | Assumes pass (5pts) | XCF keeps original 5-point value |
 | `semver-consistency` | All | Checks valid semver format | Also checks version history for wild jumps |
 | `author-verified` | JS/Swift | Assumes pass (3pts) | Checks profile for linked GitHub/LinkedIn |
-| `author-verified` | XCF | Assumes pass (4pts) | XCF keeps original 4-point value |
 | `has-skills` | All | Assumes fail (0pts) | Checks if 1+ approved skills exist for version |
 | `skills-comprehensive` | All | Assumes fail (0pts) | Checks if 3+ approved skills exist for version |
 

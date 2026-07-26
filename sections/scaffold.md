@@ -2,7 +2,7 @@
 
 Create a new LPM package from scratch with the right file structure, configuration, exports, types, tests, and documentation — optimized for a high quality score on first publish.
 
-Supports JavaScript, Swift, and XCFramework ecosystems.
+Supports JavaScript and Swift ecosystems.
 
 ## Workflow
 
@@ -20,7 +20,7 @@ Ask the user (skip questions they've already answered):
 | Package name? | Determines the `@lpm.dev/owner.package-name` identifier for lpm.dev packages. Check availability through the dashboard/API when available; do not claim a `lpm check-name` CLI exists. |
 | What does it do? (1 sentence) | Used for `description` in package metadata and README |
 | Package type? | Determines file structure and templates |
-| Language/ecosystem? | JavaScript/TypeScript, Swift, or XCFramework |
+| Language/ecosystem? | JavaScript/TypeScript or Swift |
 | Distribution mode? | Affects README content and whether to include `lpm.config.json` |
 
 ### Package Types
@@ -31,7 +31,6 @@ Ask the user (skip questions they've already answered):
 | **React component library** (`package`) | JS | `src/components/` with components, Storybook-ready | `lpm install` | `@lpm.dev/acme.ui-kit` |
 | **CLI tool** (`package`) | JS | `bin/` + `lib/`, Commander/citty setup | `lpm install` | `@lpm.dev/acme.cli` |
 | **Swift library** (`package`) | Swift | `Sources/`, `Tests/`, `Package.swift` | `lpm install` | `@lpm.dev/acme.swift-utils` |
-| **XCFramework** (`xcframework`) | XCF | Pre-compiled `.xcframework` binary | `lpm install` | `@lpm.dev/acme.analytics` |
 | **Source package** | JS/Swift | Components/templates with `lpm.config.json` for `lpm add` | `lpm add` | `@lpm.dev/acme.blocks` |
 | **MCP server** | JS | Runtime dependency plus MCP setup docs; use package metadata and docs, not `lpm.config.json.type` | `lpm install` or tool-specific setup | `@lpm.dev/acme.stripe-mcp` |
 | **Editor/rules package** | Any | Rules, prompts, or editor config delivered as source files with `files[]` rules | `lpm add` | `@lpm.dev/acme.react-rules` |
@@ -444,37 +443,10 @@ Estimated scaffold score: **85+/100 (Good)**
 
 ---
 
-## XCFramework Scaffold
-
-XCFrameworks are pre-compiled binaries — there is no source template to generate. Instead, scaffold the metadata files and README:
-
-### File Structure
-
-```
-FrameworkName/
-├── README.md
-├── CHANGELOG.md
-├── LICENSE
-└── FrameworkName.xcframework/
-    └── (your pre-compiled binary slices)
-```
-
-### XCFramework Quality Score Notes
-
-The key quality drivers for XCFrameworks:
-- `xcf-valid-plist` (10pts) — Info.plist must define platform slices
-- `xcf-multi-slice` (15pts) — ship as many platform/arch slices as possible (device + simulator for iOS + macOS = 15pts)
-- `xcf-architectures` (10pts) — must include arm64
-- `xcf-size` (5pts in code, 3pts in health) — keep binary under 10MB if possible
-
-Build your XCFramework with `xcodebuild -create-xcframework` combining device and simulator archives.
-
----
-
 ## Important Notes
 
 - Always use `@lpm.dev/owner.package-name` format for the package name
-- Default to JavaScript unless the user specifies Swift/XCFramework or the project clearly uses it
+- Default to JavaScript unless the user specifies Swift or the project clearly uses it
 - Match the existing package manager if detected (pnpm, bun, yarn, npm for JS; swift-tools-version from siblings for Swift)
 - Don't add unnecessary dependencies — keep `dependencies` minimal for a high quality score
 - The scaffold should score 70+ on quality checks out of the box (Good tier)

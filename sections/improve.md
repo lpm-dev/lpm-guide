@@ -4,7 +4,7 @@ Analyze the current package directory and provide a quality score with actionabl
 
 ## Workflow
 
-1. **Detect ecosystem** — Determine if the package is JavaScript, Swift, or XCFramework
+1. **Detect ecosystem** — Determine if the package is JavaScript or Swift
 2. **Read package files** to gather context
 3. **Run quality checks** (deterministic, same as CLI)
 4. **Deep analysis** of source code beyond the CLI checks
@@ -15,7 +15,6 @@ Analyze the current package directory and provide a quality score with actionabl
 
 **First, detect the ecosystem:**
 - `Package.swift` present → **Swift** ecosystem (25 checks)
-- `.xcframework` bundle present → **XCFramework** ecosystem (21 checks, no Testing category)
 - `package.json` present → **JavaScript** ecosystem (29 checks)
 - If none found, ask the user what kind of package this is
 
@@ -29,7 +28,7 @@ For JavaScript packages:
 - `lpm.config.json` (source package config)
 - `.github/workflows/*.yml` (CI config)
 
-For Swift/XCFramework packages:
+For Swift packages:
 - `Package.swift` (Swift packages)
 - `README.md` or `readme.md`
 - `CHANGELOG.md` or `changelog.md`
@@ -172,9 +171,9 @@ Format the report as a structured summary:
 | Category | Score | Max |
 |----------|-------|-----|
 | Documentation | {n} | 22 |
-| Code Quality | {n} | {31 for JS/Swift, 40 for XCF} |
-| Testing | {n} | {11 for JS/Swift, N/A for XCF} |
-| Package Health | {n} | {36 for JS/Swift, 38 for XCF} |
+| Code Quality | {n} | {29 for JS, 31 for Swift} |
+| Testing | {n} | 11 |
+| Package Health | {n} | {38 for JS, 36 for Swift} |
 
 ### Checks
 {For each check: checkmark or x, label, detail}

@@ -6,7 +6,7 @@ Help Marketplace package authors design pricing that maximizes revenue while bei
 
 Authors sell packages through the LPM Marketplace. Key facts:
 
-- **Platform fee**: 10% (Pro/Org plans) or 15% (Free plan)
+- **Platform fee**: 10% (Pro/Org plans) or 15% (Hobby plan), taken on the price before tax
 - **Payments**: Stripe Connect (authors receive direct payouts)
 - **License types**: Individual (per-seat) or Organization (flat price)
 - **Commercial licenses**: Optional add-on that allows buyers to bundle/redistribute
@@ -207,8 +207,8 @@ Format the recommendation as:
 
 ## Important Notes
 
-- Platform fee is 10% on Pro/Org plans, 15% on Free plan — factor this into pricing
-- Recommend the user upgrades to Pro ($8/mo) if they're on Free and expected Marketplace revenue justifies reducing fees from 15% to 10%
+- Platform fee is 10% on Pro/Org plans, 15% on the Hobby plan — factor this into pricing
+- Recommend the user upgrades to Pro ($10/mo) if they're on Hobby and expected Marketplace revenue justifies reducing fees from 15% to 10%
 - Don't overcomplicate pricing — 1-2 tiers is fine for most packages
 - Prices can be changed later (unlike distribution mode which is permanent)
 - If the user is unsure, suggest starting with one tier and adding a premium tier after getting initial customers

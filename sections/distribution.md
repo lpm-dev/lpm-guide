@@ -1,12 +1,13 @@
 # LPM Distribution Advisor
 
-Help package authors choose the right distribution mode for their LPM package. This is the highest-stakes decision an author makes — switching to Pool or Marketplace is **permanent and irreversible**.
+Help package authors choose the right distribution mode for their LPM package. This is the highest-stakes decision an author makes — choosing Free, Pool, or Marketplace is **permanent and irreversible**.
 
 ## Distribution Modes
 
 | Mode | Access | Revenue | Reversible? |
 |------|--------|---------|-------------|
-| **Private** | Only you / your org | None | Yes — can switch to Pool or Marketplace |
+| **Private** | Only you / your org | None | Yes — can switch to Free, Pool, or Marketplace |
+| **Free** | Anyone, without an account | None | **No — permanently locked** |
 | **Pool** | All Pool subscribers ($12/mo) | Usage-based share of subscriber pool | **No — permanently locked** |
 | **Marketplace** | Buyers who purchase a license | Per-seat or per-org pricing you set | **No — permanently locked** |
 
@@ -54,7 +55,7 @@ Ask these (skip any already answered):
 
 ### Dependencies
 - Does your package depend on other LPM packages?
-- If so, what distribution mode are they? (Private deps block both Pool and Marketplace)
+- If so, what distribution mode are they? (Private deps block Free, Pool, and Marketplace. A Free release can depend only on Free LPM packages)
 
 ## Step 3: Analyze Fit
 
@@ -70,14 +71,15 @@ Ask these (skip any already answered):
 ```
 $12/subscriber/month
 ├── Platform fee (20%): $2.40
-└── Author pool (80%): $9.60 ← split across all packages by weighted downloads
+└── Author share (80%): $9.60 ← split among the Pool packages that subscriber installed that month, by weight
 ```
 
 Revenue depends on:
-- Total Pool subscriber count
-- Your package's weighted downloads relative to all Pool packages
+- How many subscribers install your package each month
+- Its weight among each of those subscribers' installs (a package counts once per subscriber a month)
 - Depth multiplier (direct installs earn 100%, depth-1 deps earn 70%, depth-2 earn 49%)
-- Anti-gaming: same-owner dependencies penalized 70%, minimum 2 unique installers required
+- Anti-gaming: a dependency with the same owner as the package that pulls it in gets 30% weight, and a dependency earns only once at least 2 different subscribers installed it that month
+- A subscriber who installs no Pool package that month has their share split equally across all Pool packages
 
 **Pool is better when:**
 - Your package will be installed by many projects (high volume)
@@ -96,7 +98,7 @@ Revenue depends on:
 **Marketplace Revenue Model:**
 ```
 You set the price per seat or per organization
-├── Platform fee (10% Pro/Org, 15% Free plan)
+├── Platform fee (10% Pro/Org, 15% Hobby), on the price before tax
 └── Author receives the rest via Stripe Connect
 ```
 
@@ -109,12 +111,22 @@ License types:
 - Your package saves organizations measurable time/money
 - You want to control pricing, discounts, and commercial terms
 
+### Free — Best When
+
+- Author wants **anyone to install** the package, without an account, seat, or license
+- Author has a **paid Pro or Organization plan** (an unpaid trial doesn't qualify)
+- Every LPM dependency, direct or indirect, is itself a **Free** package
+- Author doesn't need revenue from this package
+- Author accepts that a **public Free release can't be unpublished or revoked**: replace a bad one by deprecating it and publishing a fix
+
+**If the paid plan ends:** existing Free releases stay downloadable. After 30 days the package is deprecated automatically, and its hosted files are removed 365 days after the plan ended.
+
 ### Private — Keep When
 
 - Package is internal tooling for your own projects
 - Not ready for public distribution yet
 - Contains proprietary business logic
-- Dependencies include private packages (blocking Pool/Marketplace)
+- Dependencies include private packages (blocking Free, Pool, and Marketplace)
 
 ## Step 4: Present Recommendation
 
@@ -129,13 +141,13 @@ Format the recommendation as:
 
 ### Comparison
 
-| Factor | Pool | Marketplace | Your Fit |
-|--------|------|-------------|----------|
-| Revenue model | Usage-based share | Per-seat/org pricing | {assessment} |
-| Effort | Passive (publish & earn) | Active (marketing, support) | {assessment} |
-| Audience fit | Broad / developer tools | Niche / enterprise | {assessment} |
-| Revenue potential | {estimate} | {estimate} | {which is higher} |
-| Lock-in risk | Permanent | Permanent | Same |
+| Factor | Free | Pool | Marketplace | Your Fit |
+|--------|------|------|-------------|----------|
+| Revenue model | None | Usage-based share | Per-seat/org pricing | {assessment} |
+| Effort | Passive | Passive (publish & earn) | Active (marketing, support) | {assessment} |
+| Audience fit | Everyone | Broad / developer tools | Niche / enterprise | {assessment} |
+| Revenue potential | None | {estimate} | {estimate} | {which is higher} |
+| Lock-in risk | Permanent | Permanent | Permanent | Same |
 
 ### Revenue Projections
 
@@ -158,13 +170,15 @@ If `lpm pool stats --json` is available, use real Pool revenue data for projecti
 
 **Always include this warning before any mode change:**
 
-> **This change is permanent.** Once a package is set to Pool or Marketplace distribution, it cannot be changed back to Private or switched to the other mode. The package also cannot be deleted — only archived.
+> **This change is permanent.** Once a package is set to Free, Pool, or Marketplace distribution, it cannot be changed back to Private or switched to another mode. The package also cannot be deleted — only archived.
 >
 > Before switching:
 > 1. All dependencies must allow redistribution (no private deps)
-> 2. Marketplace deps require a commercial license to bundle
-> 3. Pool deps cannot depend on Marketplace packages
-> 4. Your package version history will be publicly visible
+> 2. A Free release can depend only on Free LPM packages
+> 3. Marketplace deps require a commercial license to bundle
+> 4. Pool packages cannot depend on Marketplace packages
+> 5. A public Free release can't be unpublished or revoked
+> 6. Your package version history will be publicly visible
 >
 > Are you sure you want to proceed?
 
@@ -172,17 +186,22 @@ If `lpm pool stats --json` is available, use real Pool revenue data for projecti
 
 When switching distribution, all dependencies are checked:
 
-| Dependency Mode | Target: Pool | Target: Marketplace |
-|-----------------|-------------|---------------------|
-| Private | Blocked | Blocked |
-| Pool | Allowed | Allowed |
-| Marketplace | Blocked | Requires commercial license (same owner exempt) |
+| Dependency Mode | Target: Free | Target: Pool | Target: Marketplace |
+|-----------------|--------------|-------------|---------------------|
+| Private | Blocked | Blocked | Blocked |
+| Free | Allowed | Allowed | Allowed |
+| Pool | Blocked | Allowed | Allowed |
+| Marketplace | Blocked | Blocked | Peer dependency: allowed, each consumer needs their own access. Verified bundle or devDependency: requires a commercial license (same owner exempt). Unbundled in dependencies: blocked |
+
+Full rules: `https://lpm.dev/docs/packages/dependencies`
 
 If any dependency blocks the transition, list each blocking dependency by name and explain what would need to change.
 
 ## Licensing Guidance
 
 After recommending a distribution mode, check the package's `LICENSE` file:
+
+**Free:** Any license works. No license change needed.
 
 **Pool:** Any license works (MIT, ISC, Apache, etc.). The Pool subscription is a platform fee, not a license fee. No license change needed.
 
@@ -205,7 +224,7 @@ Options:
 ## Important Notes
 
 - Never suggest switching distribution without explaining the permanence
-- Always check dependencies before recommending Pool or Marketplace
+- Always check dependencies before recommending Free, Pool, or Marketplace
 - Revenue projections are estimates — actual revenue depends on market conditions
 - Don't oversell either option — be honest about tradeoffs
 - If the author is unsure, recommend staying Private until they have more data

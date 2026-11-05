@@ -20,7 +20,7 @@ Triggers automatically on phrases related to any part of the LPM package lifecyc
 | **Migrate** | "migrate to lpm", "npm to lpm", "dual publish" | Move an npm package to LPM |
 | **Improve** | "improve quality", "quality score", "prepare for publish" | Analyze package quality, run checks, offer fixes |
 | **Source Config** | "lpm config", "make configurable", "lpm.config.json" | Generate configurable source package config |
-| **Distribution** | "distribution mode", "pool vs marketplace", "monetize" | Choose Private, Pool, or Marketplace |
+| **Distribution** | "distribution mode", "pool vs marketplace", "monetize" | Choose Private, Free, Pool, or Marketplace |
 | **Pricing** | "pricing strategy", "how much to charge", "license type" | Design Marketplace pricing tiers |
 | **Deploy** | "deploy setup", "CI setup", "build fails 401", "LPM_TOKEN" | Configure CI/CD for install or publish |
 | **Review** | "review package", "is this safe", "compare packages" | Evaluate a package before installing |

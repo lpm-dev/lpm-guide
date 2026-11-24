@@ -85,11 +85,13 @@ Precedence: a query value (`?key=value`) wins over `defaultConfig.<key>`, which 
 
 ## Import alias
 
-- **The alias must end with `/`.** After the alias, an import must give the path inside the tarball. For example, `"importAlias": "@/"` plus `import { Button } from "@/components/button"` resolves to the tarball file `components/button.tsx`. With `"@/components"` (no trailing slash), the remainder starts with `/`, which breaks the rewrite and produces imports like `@/ui//button`.
-- **Matching imports are rewritten to the consumer's alias.** The alias comes from `--alias`. Otherwise `lpm add` detects it from `paths` in `tsconfig.json` or `jsconfig.json` and asks the consumer to confirm; under `--yes`, `--json`, or no TTY it applies the detected alias without asking. An empty answer produces relative imports.
+- **End the alias with `/` and map it to the tarball root**, e.g. `"@/"` with tsconfig `"@/*": ["./*"]`. `lpm add` removes the prefix and looks up the rest among the delivered source files, from the tarball root, with optional extensions and `index` files: `@/components/button` finds `components/button.tsx`, and a file in `src/` is imported as `@/src/...`.
+- **Prefix boundary.** Current LPM CLI counts trailing slashes as one, adds `/` to an alias ending in an ASCII letter or digit, `@`, `.`, `_` or `-` (`"@"` becomes `"@/"`, so `@radix-ui/*` stays untouched), keeps `#`, `~` or `/` as written, and drops one `/` after the prefix (with `"#"`, `#util` and `#/util` both work). Relative imports and `//` URLs are never claimed. An empty value is no alias. Older releases matched the raw string, so `"@/components"` produced `@/ui//button` and `"@"` claimed scoped packages. An alias ending in `/` works on both.
+- **Found files are re-pointed through the consumer's alias**, or become relative imports when the consumer has none. The alias comes from `--alias`. Otherwise `lpm add` detects it from `paths` in `tsconfig.json` or `jsconfig.json` and asks the consumer to confirm; under `--yes`, `--json`, or no TTY it applies the detected alias without asking. An empty answer means no alias.
+- **Imports it does not find** get the consumer's alias in place of the prefix, or stay unchanged without one. Keep files that such imports need, such as `@/lib/utils`, in the consumer project.
 - **Relative imports between copied files follow the files when they move.** They're re-pointed through the consumer's alias when one is set, and stay relative otherwise.
-- Bare package imports are left alone.
-- Swift packages get no import rewriting.
+- Bare package imports are left alone unless they start with the prefix.
+- Only JavaScript and TypeScript files are rewritten: not `.d.ts`, Swift, `.vue`, `.svelte` or `.css`.
 
 ## Registry publish limits
 

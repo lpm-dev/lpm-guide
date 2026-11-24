@@ -1,132 +1,73 @@
-# LPM Source Package Config Generator
+# Source Package Config (`lpm.config.json`)
 
-Generate `lpm.config.json` files that make LPM source packages configurable. This file controls how the `lpm add` CLI filters and delivers source files to consumers.
+Write `lpm.config.json` so `lpm add` can ask the consumer questions, copy only the matching files, add dependencies and rewrite imports. Put it at the root of the tarball. Every field, rule and limit is in [config-spec.md](../references/config-spec.md). This file covers only the workflow.
 
-## Context
-
-`lpm add` copies source files from a package tarball into the consumer's project. It works with any registry the resolver can reach — lpm.dev, npmjs.org, or a `.npmrc`-declared private registry. The `lpm.config.json` file lives at the tarball root and lets package authors define prompts, file-copy rules, dependency injection, and import rewriting.
-
-lpm.dev package name format: `@lpm.dev/owner.package-name`
-
-Consumer usage:
-```bash
-# Interactive — prompts for each option
-lpm add @lpm.dev/acme.ui-kit
-
-# URL params — pre-configured
-lpm add "@lpm.dev/acme.ui-kit?component=dialog,button&styling=panda"
-
-# Skip prompts, use defaults
-lpm add @lpm.dev/acme.ui-kit --yes
-
-# npm package using the same registry-agnostic source-delivery path
-lpm add lpm-source-package
-```
+`lpm add` copies source from any registry the resolver can reach: lpm.dev, npmjs.org, or a registry declared in `.npmrc`.
 
 ## Workflow
 
-1. **Analyze the package structure** — read the directory tree to understand files and organization
-2. **Identify configurable options** — what choices should consumers make?
-3. **Generate lpm.config.json** — include `$schema` and target the current schema in [references/config-spec.md](../references/config-spec.md)
-4. **Validate** — check against `https://cli.lpm.dev/schemas/lpm.config.json` or run `lpm schema lpm.config.json`
-
-## Config Schema Field Types
-
-| Type | UI | Value |
-|------|------|-------|
-| `"string"` | Free-form input | `"components/ui"` |
-| `"select"` | Single dropdown | `"panda"` |
-| `"select"` + `"multiSelect": true` | Checkbox list | `"dialog,button"` |
-| `"boolean"` | Yes/No | `true` / `false` |
-
-Key rules:
-- `"required": true` — consumer MUST choose (prevents "include all" for this field)
-- `"multiSelect": true` — consumer can pick multiple items
-- When a param is NOT provided by the consumer, all matching files are INCLUDED (include-all-by-default)
+1. List the package files. Decide which choices consumers make, such as components, styling or tests.
+2. Write the config:
+   - `$schema`
+   - one `configSchema` field per choice
+   - ordered `files` rules that use `include: "when"` conditions
+   - `dependencies` keyed by each choice
+3. Validate with `lpm publish --check`. `lpm schema lpm.config.json` only prints the schema.
 
 ## Example
+
+The author's `tsconfig` maps `@/*` to the package root, so a source file imports `@/lib/tokens`.
 
 ```json
 {
   "$schema": "https://cli.lpm.dev/schemas/lpm.config.json",
-  "ecosystem": "js",
-  "importAlias": "@/components",
+  "importAlias": "@/",
   "configSchema": {
     "component": {
-      "type": "select",
-      "multiSelect": true,
-      "label": "Components",
-      "options": [
-        { "value": "dialog", "label": "Dialog" },
-        { "value": "button", "label": "Button" }
-      ]
+      "type": "select", "multiSelect": true, "label": "Components",
+      "options": [{ "value": "dialog", "label": "Dialog" }, { "value": "button", "label": "Button" }]
     },
     "styling": {
-      "type": "select",
-      "required": true,
-      "label": "Styling Framework",
-      "options": [
-        { "value": "panda", "label": "Panda CSS" },
-        { "value": "tailwind", "label": "Tailwind CSS" }
-      ],
-      "default": "panda"
+      "type": "select", "required": true, "label": "Styling", "default": "panda",
+      "options": ["panda", "tailwind"]
     }
-  },
-  "defaultConfig": {
-    "styling": "panda"
   },
   "files": [
-    {
-      "src": "components/dialog/**",
-      "dest": "components/ui/dialog/",
-      "include": "when",
-      "condition": { "component": "dialog" }
-    },
-    {
-      "src": "components/button/**",
-      "dest": "components/ui/button/",
-      "include": "when",
-      "condition": { "component": "button" }
-    },
-    {
-      "src": "lib/tokens.js",
-      "dest": "lib/tokens.js",
-      "include": "always"
-    },
-    {
-      "src": "styles/panda.config.js",
-      "dest": "styles/config.js",
-      "include": "when",
-      "condition": { "styling": "panda" }
-    },
-    {
-      "src": "styles/tailwind.config.js",
-      "dest": "styles/config.js",
-      "include": "when",
-      "condition": { "styling": "tailwind" }
-    }
+    { "src": "components/dialog/**", "dest": "dialog/", "include": "when", "condition": { "component": "dialog" } },
+    { "src": "components/button/**", "dest": "button/", "include": "when", "condition": { "component": "button" } },
+    { "src": "lib/tokens.js", "dest": "lib/tokens.js" },
+    { "src": "styles/panda.config.js", "dest": "styles/config.js", "include": "when", "condition": { "styling": "panda" } },
+    { "src": "styles/tailwind.config.js", "dest": "styles/config.js", "include": "when", "condition": { "styling": "tailwind" } }
   ],
   "dependencies": {
-    "styling": {
-      "panda": ["@pandacss/dev"],
-      "tailwind": ["tailwindcss"]
-    }
+    "styling": { "panda": ["@pandacss/dev"], "tailwind": ["tailwindcss"] }
   }
 }
 ```
 
-## Best Practices
+## Design rules
 
-1. Use `"required": true` for fields where include-all doesn't make sense (e.g., `styling` where panda and tailwind configs conflict at the same `dest`)
-2. Use `"multiSelect": true` for fields where users want multiple items (e.g., components)
-3. Always provide `defaultConfig` or field-level defaults so `--yes` works
-4. Use `"include": "always"` for shared utilities all components need
-5. Use `"include": "never"` for internal/test files
-6. Use directory globs (`**`) for component directories
-7. `dest` is relative to consumer's install path, not project root
-8. Declare `importAlias` if you use alias imports during development, e.g. `"@/components"`. The CLI rewrites matching imports to the consumer's detected or explicit `--alias` value.
-9. Declare `dependencies` only when you want to control dependency injection yourself; declaring it opts out of the legacy `package.json` dependency fallback.
+- **Make a choice `required` when copying every option would clash.** The two style configs above both write `styles/config.js`. Give a required field a `default` so `--yes` still works.
+- **Shared code goes in a rule without `include`**, which defaults to `always`. To leave files out, don't match them. `include: "never"` only turns off its own rule.
+- **`importAlias` must end with `/`** ([why](../references/config-spec.md#import-alias)). With no alias, use relative imports.
+- **Put an `lpm add <exact-name>` code block in the README.** It counts as the install example for source packages.
+- Unset keys, `dest`, and the `dependencies` fallback: see [config-spec.md](../references/config-spec.md).
 
-## Full Specification
+## Consumer commands
 
-For the complete lpm.config.json schema, all field types, validation rules, and detailed examples, see [references/config-spec.md](../references/config-spec.md).
+```bash
+lpm add @lpm.dev/acme.ui-kit                                         # prompts
+lpm add "@lpm.dev/acme.ui-kit?component=dialog,button&styling=panda" # preset values
+lpm add @lpm.dev/acme.ui-kit --yes                                   # defaults, no prompts
+lpm add lpm-source-package                                           # npm-published source package
+```
+
+Useful flags:
+
+- `--path <dir>` sets the destination directory.
+- `--alias <prefix>` sets the consumer's import alias.
+- `--pm lpm|npm|pnpm|yarn|bun|auto` picks the package manager.
+- `--dry-run` shows what would happen without changing anything.
+- `--force` overwrites existing files without asking.
+- `--no-install-deps` skips the consumer's dependency changes.
+- `--target <NAME>` names the Swift target.

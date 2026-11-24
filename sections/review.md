@@ -1,208 +1,53 @@
 # LPM Package Review
 
-Help consumers evaluate an LPM package before adding it as a dependency. Covers quality score, security, maintenance health, API design, bundle impact, and alternatives — so the user can make an informed decision.
+Help a consumer evaluate an `@lpm.dev/owner.package-name` package before adding it. The LPM-specific inputs are below. Use normal dependency-review judgment for API design, fit and alternatives.
 
-## Context
+## Access by Distribution Mode
 
-LPM packages use the format `@lpm.dev/owner.package-name`. They can be:
-- **Pool** — Included in the $12/mo Pool subscription
-- **Marketplace** — Purchased individually with per-seat or per-org licensing
-- **Private** — Not available to external users
+- **Private:** only the owner or org members can install it.
+- **Free:** anyone can install it without an account.
+- **Pool:** included with a Pool subscription.
+- **Marketplace:** a license purchase is required. See [Pricing](./pricing.md) for license types.
 
-## Workflow
+## Gather Data
 
-1. **Identify the package** — Get the package name from the user
-2. **Gather package data** — Read installed source or fetch info via CLI
-3. **Analyze multiple dimensions** — Quality, security, maintenance, API, bundle size
-4. **Present a review** — Structured assessment with a clear recommendation
-5. **Compare alternatives** — If the user is deciding between packages
+1. **Quality report:** `lpm quality owner.package-name --json`.
+   - Fields: `score`, `tier`, `status` (`complete`, `pending` or `unavailable`), and `checks[]` with category, points and status.
+   - Public reports are anonymous. Private ones need publisher access.
+   - `rulesVersion: null` with categories like Code/Testing means the report is from the earlier rules. Say so.
+2. **Metadata:** `lpm info @lpm.dev/owner.package-name --json`. It gives versions and publish times, dependencies (including peer and optional), integrity and ecosystem. Distribution and download totals appear when the registry supplies them. It has no README or maintainer data.
+3. **Code, without installing:** `lpm download @lpm.dev/owner.package-name --output <dir>`.
+   - It extracts one archive and runs no scripts and installs no dependencies.
+   - Read `package.json` (scripts, `exports`, dependencies), the README, the CHANGELOG, the LICENSE, the entry points and the `.d.ts` files.
+   - If the package is already installed, read `node_modules/@lpm.dev/owner.package-name/` instead.
+4. **If it's installed in the project:** run `lpm audit` for vulnerabilities, source capabilities, suspicious source patterns and Registry quality findings. Run `lpm audit --secrets` for the separate scan for hardcoded credentials.
 
-## Step 1: Identify the Package
+## Assess
 
-The user may provide:
-- A full LPM name: `@lpm.dev/owner.package-name`
-- A short reference: `owner.package-name`
-- A package they're already looking at in their `package.json`
+| Dimension | LPM signals |
+|-----------|-------------|
+| Quality | Score/100 and tier. Category points for Docs / API / Provenance / Health. Maxes are in [quality-checks.md](../references/quality-checks.md). |
+| Authenticity | Provenance checks: `trusted-publishing`, `signed-provenance`, `repository-verified` and `verified-domain`. LPM has no "author verified" badge. |
+| Security | `lpm audit` findings, plus a read of the source for install scripts, `eval`/`new Function`, `child_process`, network or fs access the package shouldn't need, and obfuscated code. A static read is best-effort. |
+| Maintenance | Version history and publish times from `lpm info`, and a changelog entry for the current version. |
+| Footprint | Dependency count (`lean-install` / `lean-deps`), ESM, `sideEffects`, archive size. |
+| License and access | The license is compatible with the user's project. For Marketplace, which license type they need. |
 
-If the package is already installed (in `node_modules/@lpm.dev/`), read it directly. Otherwise, use `lpm info @lpm.dev/owner.package-name` to fetch metadata.
-
-## Step 2: Gather Package Data
-
-### From Installed Package (node_modules)
-
-Read from `node_modules/@lpm.dev/owner.package-name/`:
-- `package.json` — All metadata
-- `README.md` — Documentation quality
-- Source files — Code quality, patterns
-- `CHANGELOG.md` — Update frequency
-- `LICENSE` — License terms
-- `.d.ts` files — Type quality
-
-### From CLI Info
-
-Run `lpm info @lpm.dev/owner.package-name --json` to get:
-- Version history and dates
-- Download counts
-- Quality score
-- Description and keywords
-- Dependencies
-
-### From README/Source Analysis
-
-If the user has access to the source (installed or browsing on lpm.dev):
-- Read the main entry point and key exports
-- Assess code patterns and conventions
-- Check error handling approach
-- Evaluate TypeScript support quality
-
-## Step 3: Multi-Dimensional Analysis
-
-### Quality Score
-
-Report the package's quality score from the current ecosystem-aware quality system:
-
-| Category | Score | Assessment |
-|----------|-------|------------|
-| Documentation | {score/max} | {good/fair/poor} |
-| Code Quality | {score/max} | {good/fair/poor} |
-| Testing | {score/max or N/A} | {good/fair/poor or N/A} |
-| Package Health | {score/max} | {good/fair/poor} |
-| **Total** | **/100** | **{tier}** |
-
-If `lpm quality` is available and the package is on lpm.dev, use `lpm quality owner.package-name --json` to fetch the full server-side quality report with server-only checks resolved. If `lpm quality` is not available, fall back to local analysis or `lpm info`. See [references/quality-checks.md](../references/quality-checks.md) for the current check list.
-
-### Security Assessment
-
-Check for red flags:
-
-| Check | What to Look For |
-|-------|-----------------|
-| **eval/Function()** | Scan source for `eval(`, `new Function(`, `Function(` |
-| **Network calls** | Scan for `fetch(`, `http.request`, `XMLHttpRequest` in non-networking packages |
-| **File system access** | Scan for `fs.write`, `fs.unlink`, `fs.rm` in packages that shouldn't need it |
-| **Child process** | Scan for `exec(`, `spawn(`, `execSync(` — potential command injection |
-| **Obfuscated code** | Minified source without source maps in a package that should ship readable code |
-| **Install scripts** | Check for `preinstall`, `postinstall`, `prepare` scripts — common malware vector |
-| **License** | Verify license is compatible with the user's project |
-
-Severity levels:
-- **Critical**: eval, install scripts executing arbitrary code
-- **Warning**: Unexpected network/fs access, obfuscated code
-- **Info**: Minor concerns, stylistic issues
-
-### Maintenance Health
-
-| Signal | Good | Concerning |
-|--------|------|------------|
-| **Last publish** | Within 90 days | Over 6 months ago |
-| **Version count** | 3+ versions | Only 1 version |
-| **Changelog** | Exists and up to date | Missing or stale |
-| **Open issues** | Responded to | Ignored for months |
-| **Author verified** | Linked GitHub/LinkedIn | No verification |
-
-### API Design Review
-
-Assess the public API:
-
-- **Consistency**: Do functions follow a consistent naming pattern?
-- **Documentation**: Are parameters and return types documented (JSDoc or TypeScript)?
-- **Error handling**: Does the API throw meaningful errors or silently fail?
-- **Defaults**: Are sensible defaults provided for optional parameters?
-- **Breaking changes**: Does the version history show frequent breaking changes?
-
-### Bundle Impact
-
-Estimate the impact of adding this dependency:
-
-| Metric | Value | Assessment |
-|--------|-------|------------|
-| Package size | {size} | {small/medium/large} |
-| Dependencies | {count} | {few/moderate/many} |
-| Tree-shakable | {yes/no} | {good if yes} |
-| ESM support | {yes/no} | {good if yes} |
-| Side effects | {declared/undeclared} | {good if declared false} |
-
-Size thresholds:
-- **Small**: <50KB — no concerns
-- **Medium**: 50-500KB — acceptable for feature-rich packages
-- **Large**: >500KB — consider if the value justifies the size
-
-### Dependency Chain
-
-List all transitive dependencies and flag:
-- Deep chains (>3 levels)
-- Known problematic packages
-- Duplicate dependencies that might conflict with existing ones in the user's project
-- License conflicts in the dependency tree
-
-## Step 4: Present the Review
-
-Format as a structured assessment:
+## Present
 
 ```
-## Package Review: @lpm.dev/owner.package-name
-
-### Summary
-{1-2 sentence verdict}
-
-### Recommendation: {Install / Install with Caution / Avoid}
-
-### Scores
-| Dimension | Rating | Notes |
-|-----------|--------|-------|
-| Quality | {score}/100 ({tier}) | {brief} |
-| Security | {Safe/Caution/Risk} | {brief} |
-| Maintenance | {Active/Moderate/Stale} | {brief} |
-| API Design | {Good/Fair/Poor} | {brief} |
-| Bundle Impact | {Light/Moderate/Heavy} | {brief} |
-
-### Strengths
-- {strength 1}
-- {strength 2}
-
-### Concerns
-- {concern 1 with severity}
-- {concern 2 with severity}
-
-### Details
-{Expanded findings from each dimension, with specific file paths and evidence}
+## Review: @lpm.dev/owner.package-name
+Recommendation: Install | Install with caution | Avoid. {1–2 sentence reason}
+| Dimension | Rating | Evidence |   (rows from the table above; Quality as {score}/100 ({tier}))
+Strengths / Concerns (with severity and file paths)
 ```
 
-## Step 5: Compare Alternatives
-
-If the user is deciding between packages, present a side-by-side:
-
-```
-## Comparison: package-a vs package-b
-
-| | @lpm.dev/owner.a | @lpm.dev/owner.b |
-|--|---|---|
-| Quality Score | {x}/100 | {y}/100 |
-| Bundle Size | {size} | {size} |
-| Dependencies | {n} | {n} |
-| Last Updated | {date} | {date} |
-| TypeScript | {yes/no} | {yes/no} |
-| Tree-shakable | {yes/no} | {yes/no} |
-| License | {license} | {license} |
-| Price | {Pool/$X} | {Pool/$Y} |
-
-### Verdict
-{Which to choose and why, based on the user's specific needs}
-```
-
-## Recommendation Criteria
+For a comparison, put the same rows side by side and end with a verdict tied to the user's needs.
 
 | Recommendation | When |
-|---------------|------|
-| **Install** | Quality 70+, no security concerns, actively maintained, clean API |
-| **Install with Caution** | Quality 50-69, minor concerns, or some stale signals — but the package is still useful |
-| **Avoid** | Quality <50, security red flags, abandoned (>1 year no updates), critical issues found |
+|----------------|------|
+| Install | `good`/`excellent` tier, no security red flags, recent releases |
+| Install with caution | `fair` tier, or minor concerns |
+| Avoid | `needs-work` tier, red flags such as harmful install scripts or obfuscation, or abandoned |
 
-## Important Notes
-
-- Be objective — present evidence, not opinions
-- Security scanning is best-effort from static analysis, not a substitute for a proper security audit
-- If the package isn't installed locally, some checks (source analysis, security scan) are limited to what `lpm info` provides
-- Don't compare Pool and Marketplace packages on price alone — they serve different purposes
-- If the user asks "should I use X?", always provide the review framework rather than a bare yes/no
-- For npm packages (not LPM), this skill can still analyze the installed source in `node_modules/`, but quality scoring and LPM-specific features won't apply
+Base the verdict on evidence, not a bare yes/no. Don't compare Pool and Marketplace packages on price alone. A package that isn't on LPM has no quality report, so review its source only.

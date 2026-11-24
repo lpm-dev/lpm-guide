@@ -1,215 +1,49 @@
-# LPM Marketplace Pricing Strategy
+# LPM Marketplace Pricing
 
-Help Marketplace package authors design pricing that maximizes revenue while being fair to buyers. Covers license types, tier structure, price points, commercial licenses, and free trial strategy.
+Help a Marketplace author design pricing plans. For choosing the mode, permanence, and dependency rules, see [Distribution](./distribution.md). Pool packages have no pricing.
 
-## LPM Marketplace Model
+## Marketplace Facts
 
-Authors sell packages through the LPM Marketplace. Key facts:
+- **Platform fee**, on the price before tax: Hobby 15%, Pro and Organization 10% (an organization with lapsed plan billing pays 15%; Enterprise terms are custom). Pro costs $10/month, so suggest upgrading from Hobby when expected sales make the lower fee worth it.
+- **Payouts:** Stripe Connect. Buyers see the Stripe account's business name as the seller.
+- **Setup:** connect a Stripe payout account, then package dashboard → Settings → Distribution & monetization → select Marketplace (this shows the payout and plan fields) → New plan. The Marketplace choice can be saved only once a plan is active; the latest version then goes to publication review.
+- **Versions:** every purchase gives access to every available version. Access isn't limited to a major version.
 
-- **Platform fee**: 10% (Pro/Org plans) or 15% (Hobby plan), taken on the price before tax
-- **Payments**: Stripe Connect (authors receive direct payouts)
-- **License types**: Individual (per-seat) or Organization (flat price)
-- **Commercial licenses**: Optional add-on that allows buyers to bundle/redistribute
-- **Marketplace is for direct paid access** — For subscription-included access, use Pool instead
+## Plan Fields
+
+A package can have several active plans, e.g. individual monthly, individual one-time, and organization yearly.
+
+| Field | Values |
+|---|---|
+| Type | One-time fee or subscription |
+| Price (USD) | At least $0.50 |
+| Billing interval | Monthly or annually (subscriptions only) |
+| License type | Individual (per seat) or Organization (flat price, unlimited members) |
+| Commercial license (allows bundling) | Optional. At most one active commercial plan per package |
+
+Plans have no name, feature list, usage limit, or support level. They differ only by the fields above. Put feature or support promises in the README and LICENSE, not in plans.
+
+- **Individual:** a personal buyer gets 1 seat. An organization buys 1–1000 seats, and owners or admins assign them to members.
+- **Organization:** only an org owner or admin can buy it. All current and future members get access. It can't be bought for a personal account.
+- **One-time:** access with no end date, until a full refund or revocation.
+- **Subscription:** access for each paid period. Cancelling takes effect at the end of the period.
+
+## Changing Plans
+
+Plans can't be edited. To change a price or term, create a new plan, then archive the old one. Existing buyers keep their access: one-time buyers indefinitely, subscribers for each paid period. You can't archive the last active plan of a Marketplace package. To replace the commercial plan, archive it first (only one is allowed), and if it's the only plan, add a non-commercial plan before that.
+
+## Commercial License
+
+Buying a commercial plan lets the buyer bundle your package inside **their own Marketplace packages**. LPM checks for it when they publish. It's a registry permission only: it doesn't write your LICENSE or grant any other redistribution right, and the buyer's customers get no access of their own. A package never needs one for another package from the same owner. Offer one when other Marketplace authors may want to ship your code inside their packages; skip it for end-user tools.
+
+## License Terms
+
+LPM provides no template. Draft from the [commercial license template](../references/commercial-license-template.md), which lists the terms the Marketplace Seller Agreement requires, and recommend a lawyer review it.
 
 ## Workflow
 
-1. **Understand the package** — What it does, who uses it, competitive landscape
-2. **Choose license type** — Individual vs. Organization
-3. **Design tier structure** — How many tiers, what differentiates them
-4. **Set price points** — Based on value, competition, and audience
-5. **Configure commercial licensing** — If applicable
-6. **Summarize the pricing table** — Ready to implement in LPM dashboard
-
-## Step 1: Understand the Package
-
-Read from the current directory:
-- `package.json` — description, features
-- `README.md` — what it does, who it's for
-
-Ask the user (skip if already clear):
-
-| Question | Why |
-|----------|-----|
-| Who is the primary buyer? (Individual dev, team lead, CTO) | Determines price sensitivity |
-| What problem does it solve? | Determines value-based pricing |
-| Are there competitors? What do they charge? | Anchors pricing |
-| How will it be used? (Dev tool, production component, internal tool) | Determines license type |
-| How many people typically use this on a team? | Determines per-seat vs per-org |
-
-## Step 2: Choose License Type
-
-### Individual (Per-Seat)
-
-```
-Each person who uses the package needs their own license.
-Org admins can purchase bulk seats and assign them to members.
-```
-
-**Best for:**
-- Developer tools used by individual contributors
-- IDE plugins, CLI tools, personal utilities
-- Packages where usage scales with team size
-
-**Pricing psychology:** Lower price per seat, revenue scales with team size.
-
-### Organization (Flat Price)
-
-```
-One purchase covers the entire organization. All members get access.
-```
-
-**Best for:**
-- Shared infrastructure (design systems, component libraries)
-- Packages where everyone in the org benefits equally
-- High-value packages where per-seat feels nickel-and-diming
-
-**Pricing psychology:** Higher single price, simpler purchasing decision.
-
-### Decision Framework
-
-| Signal | Individual | Organization |
-|--------|-----------|-------------|
-| Used by specific roles only | Yes | — |
-| Used by entire engineering team | — | Yes |
-| Price sensitivity is high | Yes (lower per-seat) | — |
-| Buyer is a company with budget | — | Yes |
-| Usage varies by team size | Yes | — |
-| Value is same regardless of team size | — | Yes |
-
-## Step 3: Design Tier Structure
-
-### How Many Tiers?
-
-| Count | When | Example |
-|-------|------|---------|
-| **1 tier** | Simple package, one use case | Utility library, single component |
-| **2 tiers** | Standard + premium features | Standard: core features, Pro: advanced |
-| **3 tiers** | Good/better/best strategy | Starter, Pro, Enterprise |
-
-More than 3 tiers creates decision paralysis. Default to 2 unless there's a clear reason for 3.
-
-### What Differentiates Tiers?
-
-| Differentiator | Example |
-|---------------|---------|
-| **Feature set** | Basic components vs. full library |
-| **Usage limits** | Up to 3 projects vs. unlimited |
-| **Support level** | Community vs. priority support |
-| **Commercial rights** | Internal use vs. redistribution allowed |
-| **Updates** | 6 months vs. lifetime |
-
-**Tier naming suggestions:**
-- Standard / Pro
-- Starter / Professional / Enterprise
-- Personal / Team / Business
-- Community / Commercial
-
-## Step 4: Set Price Points
-
-### Value-Based Pricing
-
-Ask: "How much time/money does this save the buyer per month?"
-
-| Time Saved | Suggested Price Range |
-|------------|----------------------|
-| 1-2 hours/month | $5-15/seat/month |
-| 5-10 hours/month | $15-40/seat/month |
-| 20+ hours/month | $40-100/seat/month |
-| Replaces a $X/mo SaaS tool | 30-50% of that tool's price |
-
-### Competitive Anchoring
-
-Do not claim there is a `lpm marketplace compare` CLI command. Use package pages, dashboard data, public Marketplace listings, and competitor research for pricing anchors.
-
-If competitors exist:
-- **No competitors**: Price on value (you have pricing power)
-- **Cheaper competitors exist**: Justify premium with quality/features or match price
-- **Expensive competitors exist**: Undercut by 30-50% (your distribution advantage)
-
-### Price Psychology
-
-- End prices in 9 ($19, $29, $49) for consumer-facing
-- Use round numbers ($20, $50, $100) for enterprise/B2B
-- The middle tier should be the one you want most people to buy
-- Make the top tier 2-3x the middle tier (anchoring effect)
-
-### Common Price Points for Developer Packages
-
-| Package Type | Per-Seat/Month | Per-Org/Month |
-|-------------|---------------|---------------|
-| Small utility | $5-10 | $20-50 |
-| Component library | $10-25 | $50-150 |
-| Full framework/toolkit | $25-50 | $100-300 |
-| Enterprise tool | $50-100 | $200-500 |
-
-These are starting points — adjust based on Steps 1-3 findings.
-
-## Step 5: Commercial Licensing
-
-Commercial licenses allow buyers to bundle your package in their own products and redistribute it.
-
-### When to Offer
-
-- Your package is a building block others might ship in their products
-- Component libraries that agencies use in client projects
-- SDKs or utilities that other package authors might depend on
-
-### Pricing Commercial Licenses
-
-Commercial licenses typically cost 2-5x the standard license because they enable the buyer to generate revenue from your work.
-
-| Standard Price | Commercial Price |
-|---------------|-----------------|
-| $10/seat | $25-50/seat |
-| $50/org | $150-250/org |
-
-### When NOT to Offer
-
-- End-user tools (CLI tools, dev utilities) — no redistribution use case
-- Packages with copyleft dependencies (GPL) — can't offer commercial terms anyway
-
-## Step 6: Present Pricing Table
-
-Format the recommendation as:
-
-```
-## Pricing Recommendation: {package-name}
-
-### License Type: {Individual/Organization}
-{1-2 sentence rationale}
-
-### Pricing Table
-
-| | Standard | Pro |
-|--|----------|-----|
-| **Price** | ${X}/seat/mo | ${Y}/seat/mo |
-| **Features** | {list} | {list} |
-| **Support** | Community | Priority |
-| **Commercial rights** | No | Yes |
-
-### Rationale
-- {Why this license type}
-- {Why these price points}
-- {How this compares to alternatives}
-
-### Revenue Projections
-- At {N} customers: ${X}/month (after {fee}% platform fee)
-- Break-even: {N} customers
-- Target: {N} customers for ${X}/month
-
-### Implementation
-1. Go to LPM Dashboard → Package Settings → Pricing
-2. Create "{tier name}" plan: ${price}/{period}
-3. {Repeat for each tier}
-4. {Enable commercial license if applicable}
-```
-
-## Important Notes
-
-- Platform fee is 10% on Pro/Org plans, 15% on the Hobby plan — factor this into pricing
-- Recommend the user upgrades to Pro ($10/mo) if they're on Hobby and expected Marketplace revenue justifies reducing fees from 15% to 10%
-- Don't overcomplicate pricing — 1-2 tiers is fine for most packages
-- Prices can be changed later (unlike distribution mode which is permanent)
-- If the user is unsure, suggest starting with one tier and adding a premium tier after getting initial customers
-- For Pool packages, pricing doesn't apply — revenue is automatic from usage. Redirect to [Distribution](./distribution.md) if they're choosing between Pool and Marketplace
+1. Read `package.json` and `README.md`. Ask only what's unclear: who buys (individual developers or organizations), what competitors charge, and whether other authors would bundle it.
+2. **License type:** Individual when value grows with the number of users; Organization when the whole team benefits equally. Offering both is fine.
+3. **Billing:** subscription for packages that keep getting updates; one-time for stable tools. Offering both is fine.
+4. **Price:** base it on the value delivered and on competitor prices from package pages and public listings. There is no `lpm marketplace compare` command.
+5. **Output:** one line per plan, `{one-time|subscription} · {monthly|annual} · {Individual|Organization} · ${price}[ · commercial]`, with a short rationale, a revenue estimate after the platform fee, and the setup step from Marketplace Facts. Then point to the license template if the package has no matching LICENSE.

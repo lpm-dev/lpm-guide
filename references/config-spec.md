@@ -1,170 +1,103 @@
-# lpm.config.json Specification
+# `lpm.config.json` Specification
 
-This reference is for source packages consumed by `lpm add`. The live schema is published at `https://cli.lpm.dev/schemas/lpm.config.json`; when in doubt, prefer that schema or run:
+This file configures a source package that consumers install with `lpm add`. It sits at the root of the tarball. The live schema is at `https://cli.lpm.dev/schemas/lpm.config.json`, and `lpm schema lpm.config.json` prints it.
 
-```bash
-lpm schema lpm.config.json
-```
+`lpm add`, `lpm publish` (including `--check`) and the Registry all validate the file strictly. An unknown key at any level is rejected. For a worked example, see [source-config.md](../sections/source-config.md).
 
-## Top-Level Fields
+## Top-level fields (all optional)
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `$schema` | `string` | No | Recommended editor hint: `https://cli.lpm.dev/schemas/lpm.config.json` |
-| `ecosystem` | `"js"` or `"swift"` | No | Defaults to `"js"`. Drives default install-dir detection. |
-| `importAlias` | `string` | No | Author's import alias prefix, e.g. `"@/components"`. No trailing slash requirement. |
-| `configSchema` | `object` | No | Interactive config options for `lpm add`. |
-| `defaultConfig` | `object` | No | Package-level defaults, useful for `lpm add --yes`. |
-| `files` | `array` | No | Ordered file-copy rules with optional conditions and destinations. |
-| `dependencies` | `object` | No | Conditional dependencies injected into the consumer project. |
+| Field | Type | Notes |
+|---|---|---|
+| `$schema` | URI string | Editor hint. |
+| `type` | `"package"` or `"source"` | How the Registry classifies the package. If omitted, it's inferred. Other values are rejected. Has no effect on `lpm add`. |
+| `ecosystem` | `"js"` or `"swift"` | Default `js`. Sets the default install directory. JS picks it from the framework (Next.js app router: `components/` if it exists, else `src/components/`; Next.js pages router, Vite, Remix: `src/components/`). Swift uses `Sources/<target>/`, or `Packages/LPMComponents/Sources/<target>/` for Xcode projects. |
+| `importAlias` | string | The author's import prefix. See [Import alias](#import-alias). |
+| `configSchema` | object | Prompt fields keyed by config key. |
+| `defaultConfig` | object | Values for config keys. Overrides a field's `default`. |
+| `files` | array | Ordered copy rules. |
+| `dependencies` | object | Dependencies added based on config values. |
 
-There is no top-level `type` field and no `mcpConfig` field in the current schema.
+There is no `mcpConfig` field.
 
-## Minimal Example
+## `configSchema` field
 
-```json
-{
-  "$schema": "https://cli.lpm.dev/schemas/lpm.config.json",
-  "ecosystem": "js",
-  "importAlias": "@/components",
-  "configSchema": {
-    "component": {
-      "type": "select",
-      "multiSelect": true,
-      "label": "Components",
-      "options": ["dialog", "button"],
-      "default": "dialog",
-      "required": true
-    },
-    "styling": {
-      "type": "select",
-      "label": "Styling framework",
-      "options": ["panda", "tailwind"],
-      "default": "panda",
-      "required": true
-    },
-    "withTests": {
-      "type": "boolean",
-      "label": "Include tests?",
-      "default": false
-    }
-  },
-  "defaultConfig": {
-    "component": "dialog",
-    "styling": "panda",
-    "withTests": false
-  },
-  "files": [
-    {
-      "src": "src/dialog/**",
-      "dest": "dialog/",
-      "include": "when",
-      "condition": { "component": "dialog" }
-    },
-    {
-      "src": "src/button/**",
-      "dest": "button/",
-      "include": "when",
-      "condition": { "component": "button" }
-    },
-    {
-      "src": "tests/**",
-      "dest": "__tests__/",
-      "include": "when",
-      "condition": { "withTests": true }
-    }
-  ],
-  "dependencies": {
-    "styling": {
-      "panda": ["@pandacss/dev"],
-      "tailwind": ["tailwindcss", "autoprefixer"]
-    },
-    "withTests": {
-      "true": ["vitest"]
-    }
-  }
-}
-```
+| Property | Notes |
+|---|---|
+| `type` | `"string"` (default), `"boolean"` or `"select"`. |
+| `label` | Prompt text. Defaults to the key. |
+| `default` | String, boolean or number. |
+| `required` | The field must end up with a non-empty value. See value resolution below. |
+| `multiSelect` | Only meaningful with `select`. Selected values are joined with commas. |
+| `options` | Required for `select`, with at least 1 item. Each item is a string or `{ "value", "label" }`. |
 
-## configSchema
+## Value resolution
 
-Each key becomes an interactive prompt unless the user pre-answers it in the package spec query string.
+Precedence: a query value (`?key=value`) wins over `defaultConfig.<key>`, which wins over the field's `default`.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `type` | `"string"`, `"boolean"`, or `"select"` | Defaults to `"string"`. |
-| `label` | `string` | Prompt label. Defaults to the field name. |
-| `default` | `string`, `boolean`, or `number` | Initial value. Native JSON values are accepted. |
-| `required` | `boolean` | With `--yes`, fill from the default instead of skipping. Also prevents accidental include-all behavior for conflicting choices. |
-| `multiSelect` | `boolean` | Only for `select`; selected values become comma-joined. |
-| `options` | `array` | Only for `select`; plain strings or `{ "value": "...", "label": "..." }` objects. |
+**Interactive mode** prompts only for keys the query didn't give.
+- Defaults are pre-filled.
+- An optional field with no default can be left unset. For a multi-select, picking nothing sets it to empty, which skips its gated files.
+- A required field must be answered. For a multi-select, that means picking at least 1 value.
 
-## files
+**Non-interactive mode** applies when you pass `--yes` or `--json`, or there is no TTY.
+- Defaults are applied to every field. Optional fields with no default stay unset.
+- If a required field has no default:
+  - a boolean becomes `false`
+  - a select with exactly 1 option takes that option
+  - anything else makes `lpm add` fail with a message asking for `?key=value`
 
-When `files` is omitted, `lpm add` copies every file in the tarball. When present, rules are evaluated in order.
+**Value checks:**
+- Every key must be declared in `configSchema`.
+- A boolean must be `true` or `false`.
+- Each select value must be one of the `options`.
+- A select that isn't `multiSelect` takes exactly 1 value.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `src` | `string` | Required. Source path relative to the tarball root. Exact paths plus trailing `/**` and `/*` globs are supported. |
-| `dest` | `string` | Destination relative to the resolved install directory. A trailing `/` treats the value as a directory and preserves the source filename. |
-| `include` | `"always"`, `"when"`, or `"never"` | Defaults to `"always"`. |
-| `condition` | `object` | Required for `include: "when"`. Keys match resolved config values. Booleans and numbers are accepted. |
+**Unset keys** pass every `when` condition, so all matching rules are included. They add no dependencies. An empty multi-select (`?component=`) counts as set, so rules conditioned on that key are skipped.
 
-When a condition key was not supplied by the consumer, matching rules are included by default. Use `required: true` plus defaults for choices where "include all" would create conflicts.
+## `files`
 
-## dependencies
+**If `files` is omitted**, `lpm add` copies the file or directory named in `package.json#lpm.source`. Without that field, it copies every file except:
+- `package.json` and `lpm.config.json`
+- `node_modules`, `.git` and `.lpm`
+- `test`, `tests` and `__tests__` directories
+- the root `lpm-skills/` directory
+- LPM project record files
 
-Dependencies are conditional by config key and value:
+**If `files` is present**, rules are evaluated in order, and each matching rule adds files.
+
+| Property | Notes |
+|---|---|
+| `src` | Required. A relative path inside the tarball. It can't contain `..` or be absolute. It can be an exact file path (a directory path copies nothing), `dir/**` (recursive), or a `*` wildcard in the last segment only, such as `dir/*` or `dir/*.css`. A `**` in the middle of a path matches nothing. |
+| `dest` | Relative to the consumer's install directory. For a glob `src`, `dest` is a directory, and subpaths below the glob's base are kept. For an exact `src`, a trailing `/` means a directory and the filename is kept. Without the `/`, it's the full target path. If `dest` is omitted, the source-relative path is used. |
+| `include` | `"always"` (default), `"when"` or `"never"`. `never` only turns off this rule. It doesn't remove files that other rules match. |
+| `condition` | Required with `"when"`. Every key must match. Values can be strings, booleans or numbers. For a multi-select, it matches if any selected value is equal. Unset keys pass. |
+
+## `dependencies`
 
 ```json
-{
-  "dependencies": {
-    "icons": {
-      "lucide": ["lucide-react"],
-      "heroicons": ["@heroicons/react"],
-      "lpm": ["@lpm.dev/acme.icons@^1"]
-    }
-  }
-}
+{ "dependencies": { "icons": { "lucide": ["lucide-react"], "lpm": ["@lpm.dev/acme.icons@^1"] }, "withTests": { "true": ["vitest"] } } }
 ```
 
-Entries can be bare names or `name@range` specs. Bare names and dist-tags are resolved before mutating `package.json`; explicit ranges, exact versions, and wildcards are preserved. Names from npm, `.npmrc` private registries, and `@lpm.dev/*` packages all flow through the same registry-agnostic resolver.
+- The outer key is a config key and the inner key is a selected value. For booleans, the inner key is `"true"` or `"false"`. Each entry is a bare name or `name@range`.
+- Bare names and dist-tags are resolved at add time, before `package.json` changes, and saved like `lpm install <pkg>` would save them. Ranges, exact versions and `*` are kept as written.
+- Packages can come from any registry: npm, private registries declared in `.npmrc`, or `@lpm.dev/*`. `workspace:` specs are rejected.
+- Declaring `dependencies` turns off the fallback to the package's own `package.json` `dependencies` and `peerDependencies`. This holds even when no branch matches.
 
-Declaring `dependencies` opts out of the legacy fallback from the package's own `package.json` `dependencies` and `peerDependencies`, even if no branch matches.
+## Import alias
 
-## Import Alias
+- **The alias must end with `/`.** After the alias, an import must give the path inside the tarball. For example, `"importAlias": "@/"` plus `import { Button } from "@/components/button"` resolves to the tarball file `components/button.tsx`. With `"@/components"` (no trailing slash), the remainder starts with `/`, which breaks the rewrite and produces imports like `@/ui//button`.
+- **Matching imports are rewritten to the consumer's alias.** The alias comes from `--alias`. Otherwise `lpm add` detects it from `paths` in `tsconfig.json` or `jsconfig.json` and asks the consumer to confirm; under `--yes`, `--json`, or no TTY it applies the detected alias without asking. An empty answer produces relative imports.
+- **Relative imports between copied files follow the files when they move.** They're re-pointed through the consumer's alias when one is set, and stay relative otherwise.
+- Bare package imports are left alone.
+- Swift packages get no import rewriting.
 
-`importAlias` tells `lpm add` what prefix the author used internally. The CLI rewrites matching imports to the consumer's detected `tsconfig.json` paths or explicit `--alias` value.
+## Registry publish limits
 
-```json
-{ "importAlias": "@/components" }
-```
-
-Without `importAlias`, no alias-prefix rewrite is promised. Relative imports still work when the copied file layout preserves them.
-
-## Consumer Usage
-
-```bash
-lpm add @lpm.dev/acme.kit
-lpm add "@lpm.dev/acme.kit?component=dialog&styling=panda"
-lpm add "@lpm.dev/acme.kit?component=dialog,button&styling=panda"
-lpm add @lpm.dev/acme.kit --yes
-```
-
-`lpm add` can also consume npm-published source packages:
-
-```bash
-lpm add lpm-source-package
-```
-
-## File Placement
-
-Place `lpm.config.json` at the tarball root:
-
-```text
-my-package/
-├── package.json
-├── lpm.config.json
-├── src/
-└── README.md
-```
+| Item | Limit |
+|---|---|
+| Config file size | 128 KiB |
+| Each label, option value and `importAlias` | 200 characters |
+| Options per field | 64 |
+| `src` and `dest` | 512 characters each |
+| File rules | 1,000 |
+| Dependency entries | 200 characters each, 200 per array |

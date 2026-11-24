@@ -1,170 +1,66 @@
-# LPM Quality Checks Reference
+# Quality Checks
 
-LPM supports JavaScript and Swift packages with different check sets. The total is always 100 points, but the checks and categories differ.
+**The CLI gives the live list:** `lpm publish --check --json` covers a local package and `lpm quality owner.package-name --json` covers a published one. Prefer their output to this table. The table mirrors `crates/lpm-security/src/quality/spec.rs`, and the JSON `rulesVersion` tells you which rules produced a report.
 
-| Ecosystem | Checks | Detected by |
-|-----------|--------|-------------|
-| **JavaScript** | 29 checks | `package.json` present |
-| **Swift** | 25 checks | `Package.swift` present |
+## Model
 
----
+- Each ecosystem totals **100 points** across 4 categories. JS has 24 checks and Swift has 23.
 
-## JavaScript Ecosystem (29 checks)
+  | | Docs | API | Provenance | Health |
+  |--|--|--|--|--|
+  | JS | 32 | 26 | 12 | 30 |
+  | Swift | 32 | 30 | 12 | 26 |
 
-### Documentation (22 points)
+- **Archive checks** run in LPM CLI code. LPM.dev Registry runs the same code on the uploaded tarball, so the two agree when the CLI versions match. A quality report sent with a publish earns nothing.
+- **Registry checks** (marked **R** below) need Registry data. There are 5. `lpm publish --check` shows them as `after_publish`.
+- `preflightScore` in `--check --json` is archive points ÷ archive max points, rounded down. It is the number `--min-score` compares, not the /100 score.
+- **Tiers:** `excellent` is 90 or more, `good` is 70–89, `fair` is 50–69, and `needs-work` is under 50. A low score never fails a command unless you pass `--min-score`.
+- A report from before the 4 categories existed has `rulesVersion: null` and shows the old categories (Code, Testing) until the Registry scores it again.
 
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-readme` | Has README | 8 | README.md exists and has >100 characters |
-| `readme-install` | README has install section | 3 | README contains "## Install", "## Getting Started", "## Setup", "npm install", "lpm add", or "lpm install" (case-insensitive) |
-| `readme-usage` | README has usage examples | 3 | README has "## Usage" or "## Example" section, OR has >= 2 code blocks (``` pairs) |
-| `readme-api` | README has API docs | 2 | README has "## API", "## Reference", "## Props", "## Parameters", or "## Options" section (case-insensitive) |
-| `has-changelog` | Has CHANGELOG | 3 | Any file with "changelog" in its name (case-insensitive) |
-| `has-license` | Has LICENSE file | 3 | File with "license"/"licence" in name exists, OR package.json has `license` field |
+## Checks shared by JS and Swift
 
-### Code Quality (29 points)
+| id | Cat | Pts | Earns points when |
+|----|-----|-----|-------------------|
+| `readme` | Docs | 6 | A UTF-8 root README (README.md preferred; README, .txt, .markdown also count) has ≥300 characters of prose. Code blocks, images, link URLs and HTML don't count. |
+| `readme-install` | Docs | 3 | A code block installs the exact package name. **JS:** `lpm install`/`lpm i`, npm/pnpm/bun `install`/`i`/`add`, or `yarn add`. `lpm add` counts only for source packages, meaning a root `lpm.config.json` or the legacy `package.json` `lpm.source`. **Swift:** `.package(id: "lpmdev.owner_name", ...)` or `lpm install @lpm.dev/owner.name`. |
+| `readme-example` | Docs | 5 | **JS:** a ```` ```js ```` or ```` ```ts ```` block imports the package (2), and imports only names it actually exports (5). **Swift:** a ```` ```swift ```` block imports a library module (2) and uses its public API (5). |
+| `api-docs` | Docs | 10 | Doc comments of ≥20 characters sit on exports. **JS:** in the `.d.ts` files, or in the ESM entry when no `.d.ts` ships. **Swift:** `///` on public/open declarations outside tests. Coverage of 80% earns 10, 50% earns 6, 20% earns 3. |
+| `changelog` | Docs | 3 | CHANGELOG, CHANGES or HISTORY at the root has an entry that names this version. |
+| `agent-skills` | Docs | 5 | **R:** at least one Agent Skill is approved by the security scan. See [Skills](../sections/skills.md). |
+| `trusted-publishing` | Prov | 5 | **R:** published from CI through OIDC trusted publishing. See [Deploy](../sections/deploy.md). |
+| `signed-provenance` | Prov | 2 | **R:** published with a Sigstore provenance bundle (`lpm publish --provenance`). |
+| `repository-verified` | Prov | 2 | **R:** trusted-published from the repo that `package.json` `repository` names. |
+| `verified-domain` | Prov | 3 | **R:** the owner (the org, for an org package) verified a domain with a DNS TXT record in LPM.dev settings. |
+| `license` | Health | 5 | `license` is a current SPDX expression, a `LicenseRef-*`, or `SEE LICENSE IN <file>` with that file shipped. `UNLICENSED` earns 0, so proprietary terms should use `SEE LICENSE IN`. |
+| `license-file` | Health | 2 | LICENSE, LICENCE or COPYING is at the root. |
+| `description` | Health | 2 | `package.json` `description` is 20–280 characters and isn't just the package name. |
+| `keywords` | Health | 1 | `keywords` has at least one entry. |
+| `repository` | Health | 3 | `package.json` `repository` gives the source repository's URL. |
+| `clean-archive` | Health | 6 | **JS:** no `.env` files (example, sample and template files are fine), `.git/`, `coverage/`, OS/editor files, nested `.tgz`, or unbundled `node_modules`, and under 10 MB unpacked. **Swift:** no `.build/`, `.swiftpm/`, `xcuserdata`, `DerivedData` or `.git/`. |
 
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-types` | Has TypeScript types | 8 | package.json has `types` or `typings` field, OR any `.d.ts`/`.d.mts` file exists |
-| `intellisense-coverage` | IntelliSense coverage | 4 | Full points if `.d.ts` files exist. **Server-augmented:** server re-scores if JSDoc `@param`/`@returns` annotations found in source (partial credit possible) |
-| `esm-exports` | ESM exports | 3 | package.json has `"type": "module"`, `"module"` field, or `"exports"` field |
-| `tree-shakable` | Tree-shakable | 3 | package.json has `"sideEffects": false`, OR has both `"type": "module"` and `"exports"` field |
-| `no-eval` | No eval/Function() patterns | 3 | **Server-only** - CLI assumes pass. Server strips comments then scans source for `eval(` and `new Function(` |
-| `has-engines` | Has "engines" field | 1 | package.json has `engines.node` |
-| `has-exports-map` | Has "exports" map | 3 | package.json has `exports` field |
-| `small-deps` | Small dependency footprint | 3 | Based on `dependencies` count: 0 = 3pts, 1-3 = 2pts, 4-7 = 1pt, 8+ = 0pts |
-| `source-maps` | Has source maps | 1 | Any `.js.map` or `.mjs.map` file in the package |
+## JS only
 
-### Testing (11 points)
+| id | Cat | Pts | Earns points when |
+|----|-----|-----|-------------------|
+| `entry-points` | API | 5 | Every path in `main`, `module`, `types`, `typings`, `bin` and `exports` names a file in the package. |
+| `types` | API | 10 | Every exports entry has declarations under both `import` and `require`: either a `types` condition, or a `.d.ts` next to each `.js` (`.d.mts` for `.mjs`, `.d.cts` for `.cjs`). Some entries typed earns 5. |
+| `esm` | API | 4 | The `import` condition (or `module`) points at a real ESM file: `.mjs`, or `.js` with `"type": "module"`. |
+| `exports-map` | API | 4 | An `exports` map exists, all its targets exist, and each condition object lists `types` first and `default` last. |
+| `side-effects` | API | 2 | `"sideEffects": false`, or a list of the files that have side effects. |
+| `engines` | API | 1 | `engines.node` is a valid range. |
+| `lean-install` | Health | 6 | Counts dependencies, optional dependencies and required peers: 0 earns 6, ≤2 earns 5, ≤5 earns 4, ≤10 earns 3, ≤20 earns 2, ≤40 earns 1. |
+| `no-install-scripts` | Health | 5 | No `preinstall`, `install` or `postinstall` script, and no root `binding.gyp`. |
 
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-test-files` | Has test files | 7 | **CLI:** Scans local project directory (not tarball) for `.test.`, `.spec.`, `__tests__/`, `test/`, or `tests/` patterns. Falls back to tarball files for backward compat. **Server:** Checks `devDependencies` for known test frameworks (vitest, jest, mocha, ava, tap, cypress, playwright, @testing-library/*, etc.). |
-| `has-test-script` | Has test script | 4 | package.json has `scripts.test` that is not the default `echo "Error: no test" && exit 1` |
+## Swift only
 
-### Package Health (38 points)
+| id | Cat | Pts | Earns points when |
+|----|-----|-----|-------------------|
+| `public-api` | API | 4 | At least one `public` or `open` declaration outside tests. |
+| `platforms` | API | 5 | `Package.swift` declares platforms with minimum versions. |
+| `swift-6` | API | 6 | `swift-tools-version` 5.9+ earns 3. Swift 6 language mode on every target (tools 6.0, no `.v5` mode) earns 6. |
+| `versioned-deps` | API | 5 | Every dependency uses `from:`, `exact:` or a range, never a branch, revision or local path. |
+| `no-unsafe-flags` | API | 4 | No `unsafeFlags` in target settings. |
+| `has-tests` | API | 6 | A test target contains an `XCTestCase` subclass or a `@Test` function. |
+| `lean-deps` | Health | 7 | 0 dependencies earns 7, 1 earns 6, 2 earns 5, ≤4 earns 4, ≤6 earns 3, ≤10 earns 2, ≤20 earns 1. |
 
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-description` | Has description | 3 | package.json `description` exists and has >10 characters |
-| `has-keywords` | Has keywords | 1 | package.json `keywords` is a non-empty array |
-| `has-repository` | Has repository URL | 2 | package.json has `repository` (string or object with `url`) |
-| `has-homepage` | Has homepage | 1 | package.json has `homepage` field |
-| `reasonable-size` | Reasonable bundle size | 3 | Based on unpacked size: <100KB = 3pts, <500KB = 2pts, <1MB = 1pt, 1MB+ = 0pts |
-| `no-vulnerabilities` | No known vulnerabilities | 5 | **Server-only** - CLI assumes pass. Server checks vulnerability database |
-| `no-lifecycle-scripts` | No lifecycle scripts | 2 | Passes if package.json has no `preinstall`, `install`, `postinstall`, `preuninstall`, `uninstall`, or `postuninstall` scripts. Lifecycle scripts are a common supply chain attack vector. |
-| `maintenance-health` | Maintenance health | 4 | **Server-only** - CLI assumes pass. Last publish within 90 days |
-| `semver-consistency` | SemVer consistency | 4 | CLI checks valid semver format. **Server-augmented:** server also checks version history for wild jumps (>1 major skip) |
-| `author-verified` | Author verified | 3 | **Server-only** - CLI assumes pass. Author has linked GitHub or LinkedIn in profile settings |
-| `has-skills` | Has Agent Skills | 7 | **Server-only** - CLI assumes fail. Package has 1+ approved Agent Skills published in `.lpm/skills/` |
-| `skills-comprehensive` | Comprehensive Agent Skills | 3 | **Server-only** - CLI assumes fail. Package has 3+ approved Agent Skills |
-
----
-
-## Swift Ecosystem (25 checks)
-
-Swift packages use `Package.swift` instead of `package.json`. Documentation and health checks are the same; code quality checks are Swift-specific.
-
-### Documentation (22 points)
-
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-readme` | Has README | 8 | README.md exists and has >100 characters |
-| `readme-install` | README has install section | 3 | README contains "## Install", "## Getting Started", "## Setup", "## Requirements", "swift package manager", "Package.swift", ".package(", "lpm add", or "lpm install" (case-insensitive) |
-| `readme-usage` | README has usage examples | 3 | README has "## Usage" or "## Example" section, OR has >= 2 code blocks |
-| `readme-api` | README has API docs | 2 | README has "## API", "## Reference", "## Props", "## Parameters", or "## Options" section |
-| `has-changelog` | Has CHANGELOG | 3 | Any file with "changelog" in its name (case-insensitive) |
-| `has-license` | Has LICENSE file | 3 | LICENSE file exists |
-
-### Code Quality (31 points)
-
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-platforms` | Has platform declarations | 6 | Package.swift declares at least one platform (`.iOS(.v16)`, `.macOS(.v13)`, etc.) |
-| `recent-tools-version` | Uses recent swift-tools-version | 5 | Package.swift uses `swift-tools-version: 5.9` or higher |
-| `multi-platform` | Supports multiple platforms | 4 | 3+ platforms: 4pts, 2 platforms: 3pts, 1 platform: 2pts |
-| `has-public-api` | Has public API surface | 5 | **Server-augmented** - CLI passes if Swift source files exist; server scans for `public` declarations |
-| `has-doc-comments` | Has DocC documentation | 7 | **Server-only** - CLI assumes pass. Server scans for `///` doc comments in source |
-| `small-deps` | Small dependency footprint | 4 | Based on Package.swift dependencies: 0 = 4pts, 1-2 = 3pts, 3-5 = 2pts, 6-10 = 1pt, 11+ = 0pts |
-
-### Testing (11 points)
-
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-test-files` | Has test targets | 7 | testTarget in Package.swift, OR files in `Tests/` directory |
-| `has-test-script` | Has test configuration | 4 | Test targets defined in Package.swift |
-
-### Package Health (36 points)
-
-| ID | Label | Points | Pass Condition |
-|----|-------|--------|----------------|
-| `has-description` | Has description | 3 | `description` in package metadata (>10 characters) |
-| `has-keywords` | Has keywords | 1 | `keywords` is a non-empty array in package metadata |
-| `has-repository` | Has repository URL | 2 | `repository` field in package metadata |
-| `has-homepage` | Has homepage | 1 | `homepage` field in package metadata |
-| `reasonable-size` | Reasonable bundle size | 3 | Based on unpacked size: <100KB = 3pts, <500KB = 2pts, <1MB = 1pt, 1MB+ = 0pts |
-| `no-vulnerabilities` | No known vulnerabilities | 5 | **Server-only** - CLI assumes pass |
-| `maintenance-health` | Maintenance health | 4 | **Server-only** - CLI assumes pass |
-| `semver-consistency` | SemVer consistency | 4 | CLI checks valid semver format; server checks version history |
-| `author-verified` | Author verified | 3 | **Server-only** - CLI assumes pass |
-| `has-skills` | Has Agent Skills | 7 | **Server-only** - CLI assumes fail. 1+ approved Agent Skills |
-| `skills-comprehensive` | Comprehensive Agent Skills | 3 | **Server-only** - CLI assumes fail. 3+ approved Agent Skills |
-
----
-
-## Server as Source of Truth
-
-The server independently verifies **ALL** quality checks using data it has: tarball contents, package.json, README, extracted source text, and database records. CLI-reported check results are used only for structure (IDs, categories, labels, maxPoints) — results are always overridden by server verification.
-
-This means:
-- Authors cannot inflate scores by manipulating CLI output
-- The CLI computes an **estimated score** that may differ from the final server score
-- When server data is unavailable (e.g., old CLI versions), the CLI value is preserved as a fallback
-
-### Server verification by data source
-
-| Data Source | Checks Verified |
-|-------------|----------------|
-| **README content** | `has-readme`, `readme-install`, `readme-usage`, `readme-api` |
-| **Tarball file listing** | `has-changelog`, `source-maps`, `has-types` (`.d.ts`), `has-license` (LICENSE file) |
-| **package.json fields** | `has-description`, `has-keywords`, `has-repository`, `has-homepage`, `has-test-script`, `has-engines`, `has-exports-map`, `esm-exports`, `tree-shakable`, `small-deps`, `has-test-files` (via devDependencies), `no-lifecycle-scripts` |
-| **Extracted source text** | `no-eval` (JS), `intellisense-coverage` (JSDoc fallback), `has-public-api` (Swift), `has-doc-comments` (Swift) |
-| **Tarball size** | `reasonable-size` |
-| **Database/APIs** | `no-vulnerabilities`, `maintenance-health`, `semver-consistency`, `author-verified`, `has-skills`, `skills-comprehensive` |
-
-### Server-only checks (no CLI equivalent)
-
-These checks can only be computed server-side. The CLI sends a provisional value:
-
-| Check | Ecosystem | CLI Provisional | Server Behavior |
-|-------|-----------|-----------------|-----------------|
-| `no-eval` | JS | Assumes pass (3pts) | Scans source tarball for `eval(`/`new Function(` |
-| `intellisense-coverage` | JS | Passes if `.d.ts` exists, else 0 | Checks types field + `.d.ts` files + JSDoc annotations |
-| `has-public-api` | Swift | Passes if Swift source files present | Scans for `public` declarations |
-| `has-doc-comments` | Swift | Assumes pass (7pts) | Scans for `///` doc comments |
-| `no-vulnerabilities` | All | Assumes pass (5pts) | Checks vulnerability database |
-| `maintenance-health` | JS/Swift | Assumes pass (4pts) | Checks last publish date in database |
-| `semver-consistency` | All | Checks valid semver format | Also checks version history for wild jumps |
-| `author-verified` | JS/Swift | Assumes pass (3pts) | Checks profile for linked GitHub/LinkedIn |
-| `has-skills` | All | Assumes fail (0pts) | Checks if 1+ approved skills exist for version |
-| `skills-comprehensive` | All | Assumes fail (0pts) | Checks if 3+ approved skills exist for version |
-
----
-
-## Source Package Info (not scored, informational)
-
-If `lpm.config.json` exists, report:
-- Has config: true
-- Has defaults: whether `defaultConfig` is set
-- Option count: number of keys in `configSchema`
-- Uses conditional includes: whether any file rule has `include: "when"` with a condition
-
-## Tier Calculation
-
-| Score Range | Tier |
-|-------------|------|
-| 90-100 | Excellent |
-| 70-89 | Good |
-| 50-69 | Fair |
-| 0-49 | Needs Work |
+Nothing else is scored, including tests for JS, a `homepage`, vulnerability counts, release cadence or author profiles.

@@ -1,453 +1,131 @@
 # LPM Package Scaffolding
 
-Create a new LPM package from scratch with the right file structure, configuration, exports, types, tests, and documentation — optimized for a high quality score on first publish.
-
-Supports JavaScript and Swift ecosystems.
+Create a new LPM package (JavaScript/TypeScript or Swift) that passes the quality checks on its first publish.
 
 ## Workflow
 
-1. **Ask what they're building** — Understand the package type and purpose
-2. **Detect project context** — Check for existing framework, monorepo, toolchain config
-3. **Generate the package** — Create all files with sensible defaults
-4. **Verify quality** — Run quality checks to confirm the scaffold scores well
+1. **Gather requirements.** Skip any question the user already answered:
+   - name
+   - a one-sentence description
+   - package type
+   - ecosystem (default to JavaScript unless they say Swift or the project uses it)
+   - planned distribution mode
+2. **Detect context.** Match what the project already has:
+   - JS: `tsconfig.json`/`jsconfig.json`, a workspace root, the lockfile or package manager, `.nvmrc`/`.node-version`, the test runner config.
+   - Swift: a parent or sibling `Package.swift`, `.swift-version`, the platforms sibling packages use.
+3. **Generate the files** using the rules below.
+4. **Verify** with `lpm publish --check`.
 
-## Step 1: Gather Requirements
+## Names
 
-Ask the user (skip questions they've already answered):
+- lpm.dev packages are named `@lpm.dev/owner.package-name`. The owner is the user's LPM username or organization. Each part starts with a lowercase letter, followed by lowercase letters, digits or hyphens.
+- There is no `lpm check-name` command. Names live inside the owner's namespace. `lpm publish --dry-run` checks permissions, account limits and version availability.
 
-| Question | Why |
-|----------|-----|
-| Package name? | Determines the `@lpm.dev/owner.package-name` identifier for lpm.dev packages. Check availability through the dashboard/API when available; do not claim a `lpm check-name` CLI exists. |
-| What does it do? (1 sentence) | Used for `description` in package metadata and README |
-| Package type? | Determines file structure and templates |
-| Language/ecosystem? | JavaScript/TypeScript or Swift |
-| Distribution mode? | Affects README content and whether to include `lpm.config.json` |
+## Package Types
 
-### Package Types
+| Type | Ecosystem | Consumer installs with | Notes |
+|------|-----------|------------------------|-------|
+| Library (utilities, React components, CLI tools) | JS | `lpm install` | A regular dependency package |
+| Swift library | Swift | `lpm install` | Writes `.package(id:)` into the consumer's `Package.swift` |
+| MCP server | JS | `lpm install`, or the tool's own setup | A regular package. Document the MCP client setup in the README |
+| Source package (components, editor rules, workflow templates, any copied files) | Any | `lpm add` | Add `lpm.config.json`. See [Source Config](./source-config.md) |
 
-| Type | Ecosystem | Structure | Install command | Example |
-|------|-----------|-----------|-----------------|---------|
-| **Utility library** (`package`) | JS | `src/` with functions, single entry point | `lpm install` | `@lpm.dev/acme.utils` |
-| **React component library** (`package`) | JS | `src/components/` with components, Storybook-ready | `lpm install` | `@lpm.dev/acme.ui-kit` |
-| **CLI tool** (`package`) | JS | `bin/` + `lib/`, Commander/citty setup | `lpm install` | `@lpm.dev/acme.cli` |
-| **Swift library** (`package`) | Swift | `Sources/`, `Tests/`, `Package.swift` | `lpm install` | `@lpm.dev/acme.swift-utils` |
-| **Source package** | JS/Swift | Components/templates with `lpm.config.json` for `lpm add` | `lpm add` | `@lpm.dev/acme.blocks` |
-| **MCP server** | JS | Runtime dependency plus MCP setup docs; use package metadata and docs, not `lpm.config.json.type` | `lpm install` or tool-specific setup | `@lpm.dev/acme.stripe-mcp` |
-| **Editor/rules package** | Any | Rules, prompts, or editor config delivered as source files with `files[]` rules | `lpm add` | `@lpm.dev/acme.react-rules` |
-| **GitHub Action/template** | Any | Workflow/action files copied into a repo with `files[]` rules | `lpm add` | `@lpm.dev/acme.deploy-aws` |
-| **Other source tool** | Any | Any tarball content copied into a project | `lpm add` | `@lpm.dev/acme.custom-tool` |
+`lpm.config.json` accepts an optional top-level `type`, which must be `"package"` or `"source"`:
+- It sets the Registry's classification only and doesn't change how `lpm add` copies files.
+- Any other label, such as `"mcp-server"`, is rejected.
+- See [Config Spec](../references/config-spec.md).
 
-Do not put package-type labels in `lpm.config.json`; the current source config has no top-level `type`. Use `lpm.config.json` only for `lpm add` behavior — see [Config Spec](../references/config-spec.md) for the current schema.
+## JavaScript Package
 
-## Step 2: Detect Context
+Start with `lpm init`, which writes `package.json` (and `AGENTS.md`, unless you pass `--no-agents`):
 
-Before generating files, check the current directory for:
-
-**JavaScript:**
-- `tsconfig.json` / `jsconfig.json` — TypeScript preference
-- `package.json` (parent) — Monorepo detection (workspaces field)
-- `.nvmrc` / `.node-version` — Node version preference
-- Existing test config — `vitest.config.*`, `jest.config.*`
-- Package manager — `pnpm-lock.yaml`, `bun.lockb`, `yarn.lock`, `package-lock.json`
-
-**Swift:**
-- `.swift-version` — Swift version preference
-- `Package.swift` (parent) — Monorepo detection
-- Existing platform targets — infer `.iOS`, `.macOS`, etc. from sibling packages
-
-Use detected context to match existing project conventions.
-
-## Step 3: Generate Files
-
-### All Package Types
-
-```
-package-name/
-├── package.json
-├── README.md
-├── CHANGELOG.md
-├── LICENSE
-├── src/
-│   └── index.{js,ts}         # Main entry point
-├── src/__tests__/
-│   └── index.test.{js,ts}    # Test for entry point
-└── vitest.config.{js,ts}
+```bash
+lpm init --lpm -y --owner <owner> --name <package-name>
 ```
 
-### package.json Template
+What it creates:
+- **Fields:** `name`, `version: "1.0.0"`, `main` and `types` pointing into `dist/`, `type: "module"`, `license: "MIT"`, `files: ["dist"]` and `packageManager`.
+- **Not created:** source files, a build setup or `dist/`.
+- **Non-interactive shells:** use `-y`.
+
+Then adjust `package.json`:
+
+- **Entry paths must exist.** Every path in `main`, `module`, `types`, `bin` and `exports` must name a file that ships in the package. Plain JS without a build:
+  - Point `main`/`exports` at `./src/index.js`.
+  - Set `files` to include `src`.
+  - Remove `types` unless you ship a `.d.ts`.
+- **TypeScript:**
+  - Add `typescript` and a `build` script (`tsc`).
+  - Use a `tsconfig.json` with `declaration: true` that emits to `dist/`.
+  - Give each `exports` entry a `types` condition.
+  - Build before `lpm publish --check`, because `--check` runs no lifecycle scripts.
+- **Add the metadata the quality checks read:** `description`, `keywords`, `repository`, `exports`, `sideEffects`, `engines`, and a `license` matching a `LICENSE` file. List `CHANGELOG.md` in `files`: README and license files always ship, but a changelog ships only if `files` includes it.
+- **React components:** put `react` and `react-dom` in `peerDependencies`.
+- **CLI tools:** add a `bin` entry.
+- **Keep `dependencies` minimal** and avoid `preinstall`/`install`/`postinstall` scripts. Both are scored.
+
+Create these files:
+- `src/index.{js,ts}` and a starter test.
+- `README.md`, with an install code block naming the exact package and a usage example that imports it.
+- `CHANGELOG.md`, with an entry for the current version.
+- `LICENSE`.
+
+For the README, CHANGELOG and doc-comment guidance, see [Improve](./improve.md). For a source package, also run the [Source Config](./source-config.md) workflow.
+
+## Swift Package
+
+Publishing needs both `Package.swift` and a `package.json` that identifies the release:
 
 ```json
 {
   "name": "@lpm.dev/owner.package-name",
   "version": "0.1.0",
-  "description": "{user's description}",
-  "author": "{from git config user.name and user.email}",
+  "description": "{one sentence}",
   "license": "MIT",
-  "type": "module",
-  "main": "./src/index.js",
-  "exports": {
-    ".": "./src/index.js"
-  },
-  "types": "./src/index.d.ts",
-  "sideEffects": false,
-  "files": ["src", "README.md", "CHANGELOG.md", "LICENSE"],
-  "engines": { "node": ">=18" },
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "keywords": [],
-  "repository": {
-    "type": "git",
-    "url": "{from git remote or ask}"
-  },
-  "homepage": "https://lpm.dev/owner.package-name",
-  "devDependencies": {
-    "vitest": "^4.0.0"
-  }
+  "keywords": ["{keyword}"],
+  "repository": { "type": "git", "url": "{git remote}" },
+  "files": ["Package.swift", "Sources", "Tests", "CHANGELOG.md"]
 }
 ```
 
-Adjustments by package type:
+Package layout:
+- `Package.swift`
+- `Sources/<Name>/`
+- `Tests/<NameTests>/`
+- `README.md`, `CHANGELOG.md`, `LICENSE`
 
-| Type | Additions |
-|------|-----------|
-| **React component** | Add `react` + `react-dom` as `peerDependencies`, add `@testing-library/react` to devDeps |
-| **CLI tool** | Add `"bin"` field, add `commander` or `citty` to dependencies, create `bin/cli.js` |
-| **Source package** | Generate `lpm.config.json` (see [Source Config](./source-config.md)) |
-| **TypeScript** | Add `typescript` to devDeps, add `"build": "tsc"` script, create `tsconfig.json` with `declaration: true`, update `exports`/`types` to point to `./dist/` |
+Add any resources or alternate manifests the package needs to `files`.
 
-### README Template
+In `Package.swift`:
+- Use `// swift-tools-version: 6.0` with no `.v5` language mode.
+- Declare `platforms` with minimum versions.
+- Expose a `.library` product.
+- Add a test target using XCTest or Swift Testing.
+- Give every dependency a version requirement, not a branch, revision or local path.
+- Don't use `unsafeFlags`.
 
-```markdown
-# package-name
+The Swift scaffold's README should show consumers both install methods:
 
-{description}
-
-## Installation
-
-\`\`\`bash
+```bash
 lpm install @lpm.dev/owner.package-name
-\`\`\`
-
-## Usage
-
-\`\`\`javascript
-import { mainExport } from "@lpm.dev/owner.package-name"
-\`\`\`
-
-## API Reference
-
-### mainExport()
-
-{placeholder — fill in as you build}
-
-## License
-
-MIT
 ```
-
-For source packages, use `lpm add` instead of `lpm install` in the install section.
-
-### CHANGELOG Template
-
-```markdown
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/).
-
-## [0.1.0] - {today's date}
-
-### Added
-- Initial release
-```
-
-### Test Template
-
-```javascript
-import { describe, it, expect } from "vitest"
-import { mainExport } from "../index.js"
-
-describe("mainExport", () => {
-  it("should work", () => {
-    // TODO: Add your first test
-    expect(mainExport).toBeDefined()
-  })
-})
-```
-
-### Type-Specific Files
-
-**React component library:**
-```
-src/
-├── index.{js,ts}              # Re-exports all components
-├── components/
-│   └── Button/
-│       ├── index.{js,ts}
-│       ├── Button.{jsx,tsx}
-│       └── Button.test.{jsx,tsx}
-```
-
-**CLI tool:**
-```
-bin/
-└── cli.js                     # #!/usr/bin/env node, imports from src/
-src/
-├── index.js                   # Programmatic API
-├── commands/
-│   └── hello.js               # Starter command
-```
-
-**Source package:**
-```
-package-name/
-├── lpm.config.json             # tarball root
-└── src/
-    └── components/
-        └── Example/
-            ├── Example.jsx
-            └── Example.style.jsx  # If styling option selected
-```
-
-### TypeScript Project Setup
-
-When the user chooses TypeScript, generate a `tsconfig.json` with `declaration: true` so `.d.ts` files are emitted automatically:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
-    "declaration": true,
-    "declarationDir": "./dist",
-    "outDir": "./dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true
-  },
-  "include": ["src"]
-}
-```
-
-And adjust the package.json fields to point to the `dist/` output:
-
-```json
-{
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
-  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE"],
-  "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "prepublishOnly": "npm run build"
-  }
-}
-```
-
-`declaration: true` generates `.d.ts` files automatically — consumers get full IntelliSense with no extra effort, and it earns `has-types` (8 pts) and `intellisense-coverage` (4 pts) on the quality score.
-
-### JavaScript with JSDoc
-
-When the user chooses plain JavaScript, encourage adding JSDoc annotations to exported functions for IntelliSense:
-
-```javascript
-/**
- * Parse a configuration file and return validated options.
- * @param {string} filePath - Path to the config file
- * @param {object} [defaults] - Default values to merge
- * @returns {Promise<object>} Parsed and validated configuration
- */
-export async function parseConfig(filePath, defaults = {}) {
-```
-
-Adding `@param` and `@returns` to exported functions gives editors (VS Code, Cursor) IntelliSense and earns the `intellisense-coverage` quality check (+4 points). No build step needed.
-
-## Step 4: Post-Scaffold
-
-After generating files:
-
-1. Run `npm install` (or detected package manager) to install devDependencies
-2. Run `npm test` to verify the test template passes
-3. Initialize git repo if not already in one (`git init`)
-4. Print a summary of what was created and next steps:
-
-```
-Created @lpm.dev/owner.package-name
-
-  src/index.js          — Main entry point (start coding here)
-  src/__tests__/        — Test directory
-  package.json          — Configured for LPM with quality fields
-  README.md             — Template with install + usage sections
-  CHANGELOG.md          — Keep a Changelog format
-  LICENSE               — MIT
-
-Next steps:
-  1. Write your package code in src/
-  2. Add Agent Skills for AI coding assistants (see "lpm skills validate")
-  3. Run "lpm publish --check" to verify quality score
-  4. Run "lpm publish" when ready
-```
-
-## Swift Library Scaffold
-
-### File Structure
-
-```
-PackageName/
-├── package.json
-├── Package.swift
-├── README.md
-├── CHANGELOG.md
-├── LICENSE
-├── Sources/
-│   └── PackageName/
-│       └── PackageName.swift    # Main entry point
-└── Tests/
-    └── PackageNameTests/
-        └── PackageNameTests.swift
-```
-
-### package.json Template
-
-```json
-{
-  "name": "@lpm.dev/owner.package-name",
-  "version": "0.1.0",
-  "description": "{user's description}",
-  "author": "{owner}",
-  "license": "MIT",
-  "files": [
-    "Sources/",
-    "Tests/",
-    "Package.swift",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
-  "keywords": []
-}
-```
-
-The `files` field is critical — without it, Swift build artifacts (`.build/`, often 100MB+) may be included in the published tarball. This field whitelists only what consumers need.
-
-### Package.swift Template
 
 ```swift
-// swift-tools-version: 5.9
-import PackageDescription
-
-let package = Package(
-    name: "PackageName",
-    platforms: [
-        .iOS(.v16),
-        .macOS(.v13),
-        .watchOS(.v9),
-        .tvOS(.v16),
-    ],
-    products: [
-        .library(
-            name: "PackageName",
-            targets: ["PackageName"]
-        ),
-    ],
-    dependencies: [],
-    targets: [
-        .target(
-            name: "PackageName",
-            dependencies: []
-        ),
-        .testTarget(
-            name: "PackageNameTests",
-            dependencies: ["PackageName"]
-        ),
-    ]
-)
+.package(id: "lpmdev.owner_package-name", from: "0.1.0")
+// target dependency:
+.product(name: "<ProductName>", package: "lpmdev.owner_package-name")
 ```
 
-### Swift Source Template (`Sources/PackageName/PackageName.swift`)
+For the identity mapping, consumer setup and publishing commands, see [Swift Registry](./swift-registry.md#publishing).
 
-```swift
-/// {description from user}
-public struct PackageName {
-    /// Creates a new instance.
-    public init() {}
+## Verify
 
-    /// {placeholder — fill in as you build}
-    public func hello() -> String {
-        "Hello from PackageName"
-    }
-}
-```
+1. Run `lpm publish --check`:
+   - It runs locally, with no scripts or network.
+   - It lists every quality check, with tips for checks that lost points.
+   - Checks that need Registry data show as checked after publish.
+2. Fix failures with [Improve](./improve.md). The scoring model is in [Quality Checks](../references/quality-checks.md).
+3. Optionally add Agent Skills in `lpm-skills/` (see [Skills](./skills.md)) and run `lpm skills validate`.
+4. Report the result `--check` prints. Don't promise a score in advance.
 
-### Swift Test Template (`Tests/PackageNameTests/PackageNameTests.swift`)
-
-```swift
-import Testing
-@testable import PackageName
-
-@Suite("PackageName Tests")
-struct PackageNameTests {
-    @Test func helloReturnsString() {
-        let sut = PackageName()
-        #expect(sut.hello().isEmpty == false)
-    }
-}
-```
-
-### Swift README Install Section
-
-```markdown
-## Installation
-
-### Swift Package Manager
-
-Add to your `Package.swift`:
-
-\`\`\`swift
-dependencies: [
-    .package(url: "https://lpm.dev/owner.package-name", from: "0.1.0"),
-]
-\`\`\`
-
-Or add via LPM:
-
-\`\`\`bash
-lpm install @lpm.dev/owner.package-name
-\`\`\`
-```
-
-### Swift Quality Score Notes
-
-The scaffold above earns these checks out of the box:
-- `has-readme` ✓, `readme-install` ✓, `readme-usage` ✓, `readme-api` ✓ — from README template
-- `has-changelog` ✓, `has-license` ✓ — from files
-- `has-platforms` ✓ — 4 platforms declared
-- `recent-tools-version` ✓ — swift-tools-version 5.9
-- `multi-platform` ✓ (4pts) — 4+ platforms
-- `has-public-api` ✓ — server-augmented (CLI passes if source files present)
-- `has-doc-comments` ✓ — server-only provisional pass; add `///` comments to maximize
-- `small-deps` ✓ (4pts) — 0 dependencies
-- `has-test-files` ✓, `has-test-script` ✓ — from testTarget
-
-Estimated scaffold score: **85+/100 (Good)**
-
----
-
-## Important Notes
-
-- Always use `@lpm.dev/owner.package-name` format for the package name
-- Default to JavaScript unless the user specifies Swift or the project clearly uses it
-- Match the existing package manager if detected (pnpm, bun, yarn, npm for JS; swift-tools-version from siblings for Swift)
-- Don't add unnecessary dependencies — keep `dependencies` minimal for a high quality score
-- The scaffold should score 70+ on quality checks out of the box (Good tier)
-- If the user says "source package", follow up with the [Source Config](./source-config.md) workflow for `lpm.config.json` generation
+New packages start as Private. For Free, Pool or Marketplace, see [Distribution](./distribution.md).

@@ -1,370 +1,95 @@
 # LPM Package Quality Improvement
 
-Analyze the current package directory and provide a quality score with actionable improvements. This runs the same checks as `lpm publish --check` plus deeper source code analysis.
+Score a JS or Swift package against the LPM quality model, explain where it lost points, and offer fixes. Check IDs, points, rules and tiers live in [quality-checks.md](../references/quality-checks.md). Don't restate them from memory.
 
 ## Workflow
 
-1. **Detect ecosystem** — Determine if the package is JavaScript or Swift
-2. **Read package files** to gather context
-3. **Run quality checks** (deterministic, same as CLI)
-4. **Deep analysis** of source code beyond the CLI checks
-5. **Generate report** with score, findings, and actionable fixes
-6. **Offer to fix** issues that can be automated
+1. **Ecosystem:** `Package.swift` means Swift. Otherwise `package.json` means JS. If neither exists, ask.
+2. **Local score:** run `lpm publish --check --json` in the package directory. It needs no auth, makes no registry requests, runs no lifecycle scripts and uploads nothing. Read `quality`:
+   - `checks[]` has `id`, `points`, `maxPoints`, `status` (`passed`, `partial`, `failed`, `pending` or `after_publish`), `detail` and `tip`.
+   - `archivePoints` / `archiveMaxPoints`, `registryMaxPoints`, and `preflightScore`. `preflightScore` is a % of archive points, not the /100 score.
+   - `tarball_files` lists every file that would ship, with its size.
+   - If the CLI isn't available, evaluate by hand against quality-checks.md.
+3. **Published package:** `lpm quality owner.package-name --json` gives the Registry report, including the 5 Registry checks. Public reports are anonymous. Private ones need publisher access (`lpm login` or `LPM_TOKEN`). `status: pending` means a Registry check is still running.
+4. **Deep analysis** (below). Then **report**, then **offer fixes**, and apply only the fixes the user approves.
 
-## Step 1: Gather Context
+## Deep Analysis
 
-**First, detect the ecosystem:**
-- `Package.swift` present → **Swift** ecosystem (25 checks)
-- `package.json` present → **JavaScript** ecosystem (29 checks)
-- If none found, ask the user what kind of package this is
+Go past the check output by reading the actual source.
 
-**Read these files from the current directory (skip missing files silently):**
+- **README against exports:** follow the entry point and its re-exports to build the export map. Flag exports the README doesn't document and examples that use renamed or removed APIs. Examples that import names the package doesn't export lose `readme-example` points. Install-block rules are under `readme-install` in quality-checks.md.
+- **Doc coverage (`api-docs`):** count exports with a doc comment of ≥20 characters. For JS that means the `.d.ts` files, or the ESM entry when no `.d.ts` ships. For Swift it means `///` on public/open declarations. Name the undocumented ones.
+- **Changelog:** the current `package.json` version needs its own entry. Flag mismatches and placeholder text.
+- **Entry points:** every path in `main`/`module`/`types`/`typings`/`bin`/`exports` must exist. A `types` path pointing at a `.d.ts` that never ships is a common failure.
+- **Dependencies:**
+  - Build, test and lint tools or `@types/*` listed in `dependencies` cost `lean-install` points. Move them to `devDependencies`.
+  - Suggest built-ins for trivial dependencies, such as `fetch`, `crypto.randomUUID()`, or `fs.rm`/`fs.mkdir` with `{ recursive: true }`.
+  - Flag deprecated dependencies, and dependencies that are copyleft (GPL/AGPL/SSPL), `UNLICENSED` or have no license.
+- **Archive contents:** look through `tarball_files` for fixtures, docs builds, editor files and anything `clean-archive` rejects. Fix it with a `files` whitelist or `.npmignore`.
+- **License against distribution:** LPM enforces access and purchases. It doesn't judge whether license terms are compatible, so this is advice:
+  - **Marketplace with a permissive license:** see [Distribution → License](./distribution.md#license). For proprietary terms, start from [commercial-license-template.md](../references/commercial-license-template.md); its How to Use covers the `license` field.
+  - **Commercial License plans** (buyer bundling rights): see [Pricing](./pricing.md).
+  - **Free/Pool:** any license works, so pick terms that match how users will redistribute.
 
-For JavaScript packages:
-- `package.json` (required — abort if missing)
-- `README.md` or `readme.md`
-- `CHANGELOG.md` or `changelog.md`
-- `LICENSE` or `LICENSE.md`
-- `lpm.config.json` (source package config)
-- `.github/workflows/*.yml` (CI config)
-
-For Swift packages:
-- `Package.swift` (Swift packages)
-- `README.md` or `readme.md`
-- `CHANGELOG.md` or `changelog.md`
-- `LICENSE` or `LICENSE.md`
-- `Sources/` directory listing (Swift packages)
-- `Tests/` directory listing (Swift packages)
-
-Also scan the file tree:
-- List all files to check for test files, `.d.ts` files, CI configs
-- Count source files by ecosystem (`.js`/`.ts`/`.jsx`/`.tsx` for JS; `.swift` for Swift)
-- Read the main entry point file
-
-## Step 2: Run Quality Checks
-
-Run each check and record pass/fail. See [references/quality-checks.md](../references/quality-checks.md) for the full check list per ecosystem.
-
-Use [references/quality-checks.md](../references/quality-checks.md) for the current ecosystem-specific point tables. Do not duplicate category totals in this workflow unless you have just verified them from source. Always report the total on a 100-point scale.
-
-**Note:** The server is the source of truth — it independently re-verifies ALL checks using the tarball, package.json, README, source text, and database. The CLI shows an estimated score. The final score may differ after server verification.
-
-**Tiers:**
-- 90+: Excellent
-- 70-89: Good
-- 50-69: Fair
-- 0-49: Needs Work
-
-## Step 3: Deep Analysis
-
-Go beyond the CLI checks by reading actual source code:
-
-### README Completeness
-
-- Read the main entry point and follow re-exports to build a full export map
-- For each export, capture: name, kind (function/class/component/constant), parameters, return type, JSDoc description
-- Compare exports against README content — flag every undocumented export by name
-- Check if code examples in README actually match the current API (function names, argument order, return types)
-- Verify install command uses the correct LPM package name format (`@lpm.dev/owner.package-name` or `lpm install`/`lpm add`)
-- Check for stale examples referencing removed or renamed exports
-- Flag README sections that reference functions no longer in the public API
-
-### Changelog Quality
-
-- Check if CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com) format
-- Verify version entries match versions in git tags (if git repo)
-- Flag if latest version in CHANGELOG doesn't match `package.json` version
-- Check for empty sections or placeholder text
-- If no changelog exists, analyze git history to determine how much content is available:
-  - Count commits since last tag or initial commit
-  - Check if conventional commits format is used (`feat:`, `fix:`, `chore:`, etc.)
-  - Estimate changelog richness for the auto-fix step
-
-### Test Coverage Gaps
-
-- Read test files and identify which source files have corresponding tests
-- Flag source files with no test file (e.g., `src/parser.js` exists but no `src/parser.test.js`)
-
-### Error Handling Audit
-
-- Scan source files for empty catch blocks, swallowed errors
-- Flag `catch (e) {}` or `catch (e) { /* ignore */ }` patterns
-- Check if error messages include enough context
-
-### License Compatibility with Distribution Mode
-
-If the package is targeting **Marketplace** distribution (or already on Marketplace), check whether the `LICENSE` file is compatible:
-
-- **MIT, ISC, Apache-2.0, BSD** — These allow free redistribution, which conflicts with per-seat pricing. Flag this and recommend switching to a commercial license.
-- **GPL, AGPL** — Copyleft licenses prevent offering commercial redistribution rights. Flag if the author plans to offer commercial license plans.
-- **Custom/proprietary license** — Good for Marketplace. Verify it covers the key terms (no redistribution without commercial plan, seat limits, termination).
-- **No LICENSE file** — Flag as critical. Marketplace packages must have a license file.
-
-If targeting **Pool** distribution, any license works — no action needed. The Pool subscription is a platform fee, not a license fee.
-
-**Recommendation format:**
-```
-License incompatible with Marketplace distribution
-Your package uses MIT license, which allows free redistribution.
-This conflicts with per-seat pricing — buyers could legally share the code freely.
-
-Recommended: Switch to a commercial license for Marketplace distribution.
-See: https://lpm.dev/docs/marketplace/commercial-licenses#license-file-template
-```
-
-### Bundle Size
-
-- Flag large files (>50KB) that might be unnecessary
-- Check for files that should be in `.npmignore` or excluded via `files` field (test fixtures, docs, config files, etc.)
-- Flag binary files or images in the package
-- If `files` field is missing, estimate published size vs. actual directory size and report the difference
-- **Swift packages:** Check for `.build/` (often 100MB+), `DerivedData/`, `.swiftpm/`, `*.xcworkspace/`, `*.xcodeproj/` — if the `files` field is missing, warn that these will bloat the tarball and add a `files` whitelist to `package.json`
-
-### Dependency Audit
-
-**Misplaced dependencies:**
-- Flag test/build tools in `dependencies` that belong in `devDependencies`:
-  - Test: `vitest`, `jest`, `mocha`, `chai`, `sinon`, `@testing-library/*`, `nyc`, `c8`
-  - Build: `typescript`, `webpack`, `vite`, `rollup`, `esbuild`, `tsup`, `unbuild`, `@swc/*`
-  - Lint: `eslint`, `prettier`, `biome`, `@biomejs/*`, `stylelint`
-  - Types: `@types/*` (unless the package re-exports these types)
-
-**Lighter alternatives:**
-
-| Heavy | Lighter Alternative | Size Reduction |
-|-------|---------------------|----------------|
-| `moment` | `dayjs` or `date-fns` | ~95% smaller |
-| `lodash` | `lodash-es` or native methods | ~70% smaller |
-| `axios` | native `fetch` | Remove dep entirely |
-| `node-fetch` | native `fetch` (Node 18+) | Remove dep entirely |
-| `uuid` | `crypto.randomUUID()` (Node 19+) | Remove dep entirely |
-| `chalk` | `picocolors` or `yoctocolors` | ~95% smaller |
-| `commander` | `citty` or `cleye` | ~80% smaller |
-| `inquirer` | `@clack/prompts` | ~70% smaller |
-| `glob` | `tinyglobby` or `fast-glob` | ~80% smaller |
-| `request` | native `fetch` | Deprecated, remove |
-| `form-data` | native `FormData` (Node 18+) | Remove dep entirely |
-| `string-width` | `get-east-asian-width` | ~90% smaller |
-| `rimraf` | `fs.rm(path, { recursive: true })` | Remove dep entirely |
-| `mkdirp` | `fs.mkdir(path, { recursive: true })` | Remove dep entirely |
-
-**License compatibility:**
-- Read `license` field from each dependency's `package.json` (in `node_modules/`)
-- Flag dependencies with restrictive licenses that may conflict with distribution:
-  - `GPL-2.0`, `GPL-3.0`, `AGPL-3.0` — copyleft, requires derivative works to use same license
-  - `SSPL-1.0` — restrictive server-side license
-  - `BSL-1.1` — Business Source License
-  - `UNLICENSED` or missing license — cannot legally redistribute
-- Note: This matters especially for LPM packages using `pool` or `marketplace` distribution where the code is redistributed
-
-**Deprecated packages:**
-- Flag packages that are officially deprecated (check for `deprecated` field in their `package.json`)
-
-## Step 4: Generate Report
-
-Format the report as a structured summary:
+## Report
 
 ```
-## Quality Score: {score}/100 ({tier})
+## Quality: {score}/100 ({tier})
+   (unpublished: "Archive {archivePoints}/{archiveMaxPoints} ({preflightScore}%); {registryMaxPoints} pts decided by the Registry after publish")
 
-### Category Breakdown
-| Category | Score | Max |
-|----------|-------|-----|
-| Documentation | {n} | 22 |
-| Code Quality | {n} | {29 for JS, 31 for Swift} |
-| Testing | {n} | 11 |
-| Package Health | {n} | {38 for JS, 36 for Swift} |
-
-### Checks
-{For each check: checkmark or x, label, detail}
-
-### Deep Analysis Findings
-{Grouped by category, with specific file paths and line numbers}
-
-### Quick Wins
-{Top 3-5 easiest improvements ranked by points gained}
-
-### Estimated Score After Fixes
-{Current score} -> {projected score} ({tier change if applicable})
+| Category | Points | Max |      ← maxes from quality-checks.md for this ecosystem
+Checks: ✓ / ◐ / ✗  id: detail
+Findings: grouped, with file:line
+Quick wins: top 3–5 by points gained for the effort
+Projected: {now} → {after fixes}
 ```
 
-## Step 5: Offer Fixes
+## Fixes
 
-For each failed check, offer to generate or fix the issue. Only apply fixes the user approves.
+| Lost points on | Fix |
+|----------------|-----|
+| `description` / `keywords` / `repository` | A description taken from the README or source. Keywords taken from the name and purpose. `repository` from `git remote get-url origin`. |
+| `engines` | A valid `engines.node` range matching the lowest Node version the code supports. |
+| `entry-points` / `exports-map` / `esm` / `side-effects` / `types` | See **JS types and exports** below. |
+| `readme` / `readme-install` / `readme-example` | Generate only the missing sections from real exports. See **README** below. |
+| `api-docs` | Add doc comments of ≥20 characters to undocumented exports. |
+| `changelog` | Generate it from git history. See **Changelog** below. |
+| `license` / `license-file` | Add a LICENSE file and an SPDX id, or `SEE LICENSE IN LICENSE` for proprietary terms. |
+| `no-install-scripts` | Ship prebuilt files. Remove `preinstall`/`install`/`postinstall` and any root `binding.gyp`. |
+| `clean-archive` | Use a `files` whitelist or `.npmignore`, and remove large build or fixture output. |
+| `lean-install` / `lean-deps` | Remove dependencies or move them to `devDependencies`. |
+| `trusted-publishing` / `signed-provenance` / `repository-verified` | Publish from CI with a Trusted Publisher and `--provenance`. See [Deploy](./deploy.md). |
+| `verified-domain` | The owner adds a DNS TXT record in their LPM.dev settings. |
+| `agent-skills` | Follow the [Skills workflow](./skills.md). |
+| Swift `platforms` / `swift-6` / `versioned-deps` / `no-unsafe-flags` / `has-tests` / `public-api` | Add `platforms:` with minimum versions. Use `// swift-tools-version: 6.0` without `.v5` modes. Use `from:`/`exact:` requirements. Remove `unsafeFlags`. Add an XCTest or Swift Testing target. Mark the consumer API `public`. |
 
-### Package.json Fixes
+Tests (for JS), `homepage` and CI files earn no points on their own. Offer them as plain improvements, never as score fixes.
 
-| Failed Check | Automated Fix |
-|--------------|---------------|
-| No description | Suggest description from README first paragraph or source analysis |
-| No keywords | Suggest keywords from package name, description, and source analysis |
-| No repository | Add `"repository"` field if `.git/config` has a remote URL |
-| No homepage | Add `"homepage"` from repository URL or `https://lpm.dev/owner.package-name` |
-| No engines field | Add `"engines": { "node": ">=18" }` |
-| No exports map | Suggest `"exports"` field based on package entry points |
-| No test script | Add `"test": "vitest"` (or match existing runner) |
-| Misplaced deps | Move flagged packages from `dependencies` to `devDependencies` |
+### README
 
-### README Generation
+Read the actual exports and never guess signatures. The README needs enough prose (threshold in quality-checks.md) and these code blocks:
 
-When README is missing or incomplete, generate a comprehensive README from source code analysis:
+- An install block naming the exact package, using a command `readme-install` accepts.
+- A ```` ```js ````/```` ```ts ```` (or ```` ```swift ````) example that imports only names the package really exports.
 
-1. **Read all exports** — Follow the entry point, resolve re-exports, capture every public function/class/component
-2. **Extract signatures** — Parameter names, types (from JSDoc `@param`/TypeScript), return types, default values
-3. **Build sections:**
+If a README already exists, offer each missing section separately and don't overwrite what's there.
 
-```markdown
-# package-name
+### Changelog
 
-{description from package.json}
+Build it from `git log` and the semver tags. Never invent entries. Use Keep a Changelog sections, and map conventional-commit prefixes: `feat` goes to Added, `fix` to Fixed, and everything else to Changed. Skip `chore`, `ci` and `build`. The current version must have an entry. In an existing changelog, only prepend what's missing.
 
-## Installation
+### JS types and exports
 
-\`\`\`bash
-lpm install @lpm.dev/owner.package-name
-\`\`\`
+`types` wants declarations for every exports entry under both `import` and `require`. `api-docs` wants doc comments. Rank the options:
 
-## Usage
+1. **TypeScript** with `declaration: true` generates the `.d.ts` files. Point each `types` condition at them.
+2. **Hand-written `.d.ts`** next to each entry (`.d.mts` for `.mjs`, `.d.cts` for `.cjs`), with doc comments. No build step.
+3. **JSDoc in the ESM entry only.** This earns `api-docs` when no `.d.ts` ships, but not `types`.
 
-{For the top 3-5 most important exports, write a realistic usage example with import statement and function call. Infer typical usage from parameter names and types.}
-
-## API Reference
-
-### functionName(param1, param2?)
-
-{JSDoc description or inferred description}
-
-**Parameters:**
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| param1 | string | — | {from @param or inferred} |
-| param2 | object | {} | {from @param or inferred} |
-
-**Returns:** {return type} — {description}
-
-{Repeat for each export}
-
-## License
-
-{from package.json license field}
+```json
+"type": "module",
+"sideEffects": false,
+"exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } }
 ```
 
-4. **For existing READMEs** — Only generate missing sections, don't overwrite existing content. Offer each section individually.
-
-### Changelog Generation
-
-When CHANGELOG is missing, generate from git history:
-
-1. **Read git log** — `git log --oneline --decorate` to get commits and tags
-2. **Group by version** — Use git tags matching semver patterns (`v1.0.0`, `1.0.0`) as version boundaries
-3. **Categorize commits** — Parse conventional commit prefixes or infer from message:
-
-| Prefix | Category |
-|--------|----------|
-| `feat:`, `feature:` | Added |
-| `fix:`, `bugfix:` | Fixed |
-| `docs:` | Documentation |
-| `refactor:`, `perf:` | Changed |
-| `BREAKING CHANGE:`, `!:` | Breaking |
-| `chore:`, `ci:`, `build:` | Maintenance (omit from changelog) |
-| No prefix | Changed (default) |
-
-4. **Format as Keep a Changelog:**
-
-```markdown
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/).
-
-## [1.2.0] - 2026-02-14
-
-### Added
-- New `parseConfig` function for reading lpm.config.json files
-
-### Fixed
-- Fixed path traversal vulnerability in tarball extraction
-
-## [1.1.0] - 2026-01-20
-
-### Added
-- ...
-```
-
-5. **For existing CHANGELOGs** — Only prepend new entries since the latest documented version
-
-### Other Fixes
-
-| Failed Check | Automated Fix |
-|--------------|---------------|
-| No LICENSE | Generate MIT license (Pool) or commercial license template (Marketplace) with author from package.json |
-| LICENSE incompatible with distribution | If Marketplace: offer to replace with LPM Commercial License template. If Pool: no action needed (any license works) |
-| No TypeScript types | See "Improving Type Coverage" below for 3 options |
-| No test files | Add a test framework (vitest, jest, etc.) to `devDependencies` and generate test template. The CLI scans the local project directory, and the server checks `devDependencies` for known test frameworks. |
-| No CI config | Generate `.github/workflows/ci.yml` template |
-
-### Improving Type Coverage
-
-When `has-types` (8 pts) or `intellisense-coverage` (4 pts) checks fail, offer three approaches ranked by benefit:
-
-**Path 1 — Add TypeScript (Best, +12 points)**
-- Add `typescript` to devDependencies
-- Create `tsconfig.json` with `declaration: true`:
-  ```json
-  {
-    "compilerOptions": {
-      "target": "ES2022",
-      "module": "Node16",
-      "moduleResolution": "Node16",
-      "declaration": true,
-      "outDir": "./dist",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true
-    },
-    "include": ["src"]
-  }
-  ```
-- Rename `.js` → `.ts` (or start with just the entry point)
-- Add `"build": "tsc"` script, update `exports` and `types` to `./dist/`
-- Result: Full type safety, auto-generated `.d.ts`, IntelliSense everywhere
-
-**Path 2 — Hand-written `.d.ts` (Good, +8 points)**
-- Create a `.d.ts` file next to the entry point
-- Document exported functions with parameter and return types:
-  ```typescript
-  export declare function parseConfig(filePath: string, defaults?: object): Promise<object>;
-  export declare const VERSION: string;
-  ```
-- Add `"types": "./src/index.d.ts"` to package.json
-- Result: Consumers get IntelliSense, no build step needed
-
-**Path 3 — Add JSDoc annotations (OK, +4 points)**
-- Add `@param` and `@returns` tags to exported functions:
-  ```javascript
-  /**
-   * Parse a configuration file.
-   * @param {string} filePath - Path to the config file
-   * @param {object} [defaults] - Default values
-   * @returns {Promise<object>} Parsed configuration
-   */
-  export async function parseConfig(filePath, defaults = {}) {
-  ```
-- No build step, no new files, no TypeScript dependency
-- Editors pick up JSDoc for IntelliSense automatically
-- Result: Better IntelliSense, earns `intellisense-coverage` points
-
-Better types mean better IntelliSense for everyone who uses your package, and a higher quality score on LPM.
-
-## Important Notes
-
-- Never modify files without user approval
-- Show the report first, then ask which fixes to apply
-- For README generation, read actual source code to ensure accuracy — never guess at function signatures
-- For test generation, match the existing test framework (vitest, jest, etc.)
-- For changelog generation, read actual git history — never fabricate commit messages
-- The quality score shown here should match the current local `lpm publish --check` estimate
-- The server independently re-verifies ALL checks after publish using the actual tarball, package.json, README, source text, and database. Server-only checks (no-eval, intellisense-coverage, no-vulnerabilities, maintenance-health, semver-consistency, author-verified, has-skills, skills-comprehensive) are approximated locally
-- **Agent Skills** (has-skills +7, skills-comprehensive +3) are server-only checks. Publishing skills in `.lpm/skills/` earns up to 10 points in Package Health. See [Skills workflow](./skills.md) for how to create them.
-- `lpm quality owner.package-name --json` is lpm.dev-only. When available and authenticated, use it to fetch the real server-side score instead of the estimated local score.
+Keep `types` first and `default` last in each condition object, and make sure every target exists. Re-run `lpm publish --check` to confirm.

@@ -1,6 +1,6 @@
 ---
 name: lpm-guide
-description: "Guide for the LPM package lifecycle: scaffold or migrate packages, improve quality, create lpm.config.json source configs, choose Free, Pool, or Marketplace distribution, design pricing, set up CI/CD, review packages, configure Swift registry, and create or update Agent Skills. Use for triggers like create package, lpm init, migrate to lpm, npm to lpm, dual publish, quality score, lpm publish --check, source package config, lpm.config.json, distribution mode, free distribution, pool vs marketplace, marketplace pricing, deploy setup, LPM_TOKEN, npmrc setup, review package, swift package, Package.swift, lpm swift-registry, SE-0292, .lpm/skills, lpm skills, and ai coding assistant skills."
+description: "Guide for the LPM package lifecycle: scaffold or migrate packages, improve quality, write lpm.config.json source configs, choose Private, Free, Pool, or Marketplace distribution, design Marketplace pricing and licenses, set up CI/CD, review packages, configure the Swift registry, and author Agent Skills. Use for triggers like create package, new package, scaffold, lpm init, migrate to lpm, npm to lpm, dual publish, improve quality, quality score, prepare for publish, lpm publish --check, lpm.config.json, make configurable, source package config, distribution mode, free distribution, pool vs marketplace, monetize, marketplace pricing, pricing strategy, how much to charge, license type, commercial license, deploy setup, CI setup, build fails 401, LPM_TOKEN, npmrc setup, trusted publishing, review package, is this safe, compare packages, swift registry, lpm swift-registry, SE-0292, spm setup, Package.swift registry, swift package resolve, agent skills, create skills, update skills, lpm skills, lpm-skills."
 ---
 
 # LPM Guide
@@ -20,27 +20,26 @@ Read current source or docs before asserting CLI flags, config fields, or publis
 
 ## Workflows
 
-| User Intent | Guide | When to read |
-|-------------|-------|--------------|
-| Create a new package from scratch | [Scaffold](./sections/scaffold.md) | "create package", "new package", "scaffold", "init" |
-| Bring an existing npm package to LPM | [Migrate](./sections/migrate.md) | "migrate to lpm", "npm to lpm", "dual publish" |
-| Check or improve package quality score | [Improve](./sections/improve.md) | "improve quality", "quality score", "prepare for publish" |
-| Make a source package configurable | [Source Config](./sections/source-config.md) | "lpm config", "make configurable", "lpm.config.json" |
-| Choose Private, Free, Pool, or Marketplace | [Distribution](./sections/distribution.md) | "distribution mode", "pool vs marketplace", "monetize" |
-| Design Marketplace pricing and licensing | [Pricing](./sections/pricing.md) | "pricing strategy", "how much to charge", "license type" |
-| Set up CI/CD for installing or publishing | [Deploy](./sections/deploy.md) | "deploy setup", "CI setup", "build fails 401", "LPM_TOKEN" |
-| Evaluate a package before installing | [Review](./sections/review.md) | "review package", "is this safe", "compare packages" |
-| Set up SPM to use LPM packages | [Swift Registry](./sections/swift-registry.md) | "swift registry", "SE-0292", "lpm swift-registry", "spm setup", "Package.swift registry", "swift package resolve" |
-| Create or update Agent Skills for AI assistants | [Skills](./sections/skills.md) | "agent skills", "create skills", "update skills", "lpm skills", ".lpm/skills" |
+| User Intent | Guide |
+|-------------|-------|
+| Create a new package from scratch | [Scaffold](./sections/scaffold.md) |
+| Bring an existing npm package to LPM, or dual publish | [Migrate](./sections/migrate.md) |
+| Check or improve the quality score, prepare for publish | [Improve](./sections/improve.md) |
+| Make a source package configurable (`lpm.config.json`) | [Source Config](./sections/source-config.md) |
+| Choose Private, Free, Pool, or Marketplace | [Distribution](./sections/distribution.md) |
+| Design Marketplace pricing and licensing | [Pricing](./sections/pricing.md) |
+| Set up CI/CD, tokens, `.npmrc`, or trusted publishing | [Deploy](./sections/deploy.md) |
+| Evaluate or compare packages before installing | [Review](./sections/review.md) |
+| Set up SwiftPM to use LPM packages | [Swift Registry](./sections/swift-registry.md) |
+| Create or update Agent Skills for a package | [Skills](./sections/skills.md) |
 
 ## References
 
-These are detailed specifications referenced by the section files:
+Section files link to these when needed:
 
-| Reference | Used by |
-|-----------|---------|
-| [Quality Checks](./references/quality-checks.md) | Improve, Review |
-| [Config Spec](./references/config-spec.md) | Source Config |
+- [Quality Checks](./references/quality-checks.md): check IDs, points, and tiers
+- [Config Spec](./references/config-spec.md): every `lpm.config.json` field and rule
+- [Commercial License Template](./references/commercial-license-template.md): starter LICENSE for Marketplace packages
 
 ## How to Use This Skill
 

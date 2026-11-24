@@ -1,209 +1,86 @@
 # LPM Package Migration
 
-Migrate an existing npm package to LPM format. Handles renaming, package.json updates, README changes, CI configuration, and optionally sets up dual publishing to both npm and LPM.
+Move an existing npm package to lpm.dev, either fully or by publishing to both registries.
 
-## Workflow
+`lpm migrate` is a different thing: it converts a project's npm/pnpm/Yarn/Bun lockfile so the project can use LPM CLI as its package manager. It doesn't move a package to lpm.dev.
 
-1. **Analyze the existing package** — Read package.json, understand current setup
-2. **Determine migration type** — Full migration or dual publishing
-3. **Transform package.json** — Rename, add LPM fields, preserve existing config
-4. **Update documentation** — README install instructions, badges
-5. **Configure CI/CD** — `.npmrc` setup, `LPM_TOKEN` environment variable
-6. **Verify** — Run quality checks to show the package's LPM score
+## Step 1: Analyze
 
-## Step 1: Analyze Existing Package
+Read these files:
+- `package.json`
+- `README.md`
+- `.npmrc`
+- `.github/workflows/*.yml`
+- `tsconfig.json`
+- `files`/`.npmignore`
 
-Read and assess the current package:
+Then check for these things:
 
-- `package.json` — Current name, fields, scripts, dependencies
-- `README.md` — Install instructions that need updating
-- `.npmrc` — Existing registry configuration
-- `.github/workflows/*.yml` — CI that may need LPM publish steps
-- `tsconfig.json` — TypeScript setup
-- `.npmignore` / `files` field — What gets published
+- **Dependencies:** dependency rules differ for Free, Pool and Marketplace (see [Distribution](./distribution.md)). Flag any private or Marketplace dependencies early.
+- **Types:** look for `types`/`typings`, shipped `.d.ts` files, and `declaration: true`. If there are none, tell the user that type declarations and doc comments are scored, and point them to [Improve](./improve.md).
+- **Name:** see [Scaffold → Names](./scaffold.md#names).
 
-Check for migration blockers:
+## Step 2: Choose the Migration Type
 
-- Is the name already taken on LPM? Check through the dashboard/API if available; do not claim a `lpm check-name` CLI exists.
-- Does it have private dependencies that would block Pool/Marketplace?
-- Is it a scoped package (`@scope/name`) that needs renaming?
+| Type | When |
+|------|------|
+| **Full migration** | A new package, or the user is willing to deprecate the npm version |
+| **Dual publish** | An established package that should keep its npm users |
+| **Source migration** | Component libraries or UI kits that consumers copy in with `lpm add`. See [Source Config](./source-config.md) |
 
-Check types status:
-
-- Does package.json have a `types` or `typings` field?
-- Do any `.d.ts` or `.d.mts` files exist?
-- Does `tsconfig.json` exist with `declaration: true`?
-- If none of the above: note the opportunity — "This package doesn't have type definitions. Adding types improves IntelliSense for your users and earns +8-12 quality points. See [Improve](./improve.md) for options."
-
-## Step 2: Determine Migration Type
-
-| Type                 | Description                               | When to use                                     |
-| -------------------- | ----------------------------------------- | ----------------------------------------------- |
-| **Full migration**   | Replace npm with LPM entirely             | New package or willing to deprecate npm version |
-| **Dual publish**     | Publish to both npm and LPM               | Established package, want to keep npm users     |
-| **Source migration** | Convert to LPM source package (`lpm add`) | Component libraries, UI kits                    |
-
-Ask the user which approach they want if not clear from context.
+If the context doesn't make it clear, ask.
 
 ## Step 3: Transform package.json
 
-### Name Conversion
+The name becomes `@scope/package-name` or `package-name` → `@lpm.dev/owner.package-name`. The owner is the user's LPM username or organization. Ask if it isn't obvious.
 
-```
-npm format:          @scope/package-name  →  @lpm.dev/owner.package-name
-npm unscoped:        package-name         →  @lpm.dev/owner.package-name
-```
+Only add or update fields. Never remove ones that work. Fill in whatever is missing:
+- `description`, `keywords`, `repository` and `license`, plus a `LICENSE` file.
+- `exports`, `sideEffects` and `engines`.
+- A `files` list that includes `CHANGELOG.md`.
 
-The owner is the user's LPM username or org name. Ask if not obvious.
+Every path in `main`, `module`, `types`, `bin` and `exports` must name a file that ships.
 
-### Fields to Add/Update
-
-```json
-{
-  "name": "@lpm.dev/owner.package-name",
-  "homepage": "https://lpm.dev/owner.package-name",
-  "repository": { "type": "git", "url": "..." },
-  "exports": { ".": "./src/index.js" },
-  "type": "module",
-  "sideEffects": false,
-  "engines": { "node": ">=18" },
-  "files": ["src", "dist", "README.md", "CHANGELOG.md", "LICENSE"]
-}
-```
-
-**Preserve existing fields** — Don't remove anything that works. Only add missing fields and update the name.
-
-### For Dual Publishing
-
-Keep the original npm `name` in `package.json`, then configure per-registry names in `lpm.json`:
+**Dual publish:** keep the npm `name` in `package.json` and set per-registry names in `lpm.json`:
 
 ```json
 {
   "publish": {
-    "registries": ["lpm", "npm"],
-    "lpm": { "name": "@lpm.dev/owner.package-name" },
-    "npm": { "name": "package-name", "access": "public" }
+    "registries": ["npm", "lpm"],
+    "npm": { "name": "package-name", "access": "public" },
+    "lpm": { "name": "@lpm.dev/owner.package-name" }
   }
 }
 ```
 
-`lpm.config.json` is for source-package `lpm add` behavior; do not use it for publish name overrides.
+`lpm publish --yes` publishes to the configured targets. Any target flag, such as `--lpm` or `--npm`, replaces the list for that run.
 
-## Step 4: Update Documentation
+Don't put publish names in `lpm.config.json`. That file only controls `lpm add` for source packages.
 
-### README Changes
+## Step 4: Update the README
 
-Find and update install instructions:
+- **Install commands:** change `npm install`/`yarn add`/`pnpm add package-name` to a code block running `lpm install @lpm.dev/owner.package-name`. For dual publish, show both the LPM and npm commands.
+- **Imports:** update every `import`/`require` example (`from "old-name"`, `require("old-name")`, `from "@old-scope/old-name"`) to the new name.
 
-| Before                             | After                                             |
-| ---------------------------------- | ------------------------------------------------- |
-| `npm install package-name`         | `lpm install @lpm.dev/owner.package-name`         |
-| `yarn add package-name`            | `lpm install @lpm.dev/owner.package-name`         |
-| `pnpm add package-name`            | `lpm install @lpm.dev/owner.package-name`         |
-| `import { x } from "package-name"` | `import { x } from "@lpm.dev/owner.package-name"` |
+## Step 5: CI/CD
 
-For dual publishing, show both options:
+Publishing with LPM CLI needs no `.npmrc`. Projects only need one when npm/pnpm/Yarn must install `@lpm.dev/*` dependencies.
 
-```markdown
-## Installation
+For publishing from CI, see [Deploy](./deploy.md). It covers:
+- installing the CLI
+- Trusted Publisher (OIDC), which is the recommended setup
+- `LPM_TOKEN`
+- `.npmrc` setup for consumers
 
-### From LPM
-
-\`\`\`bash
-lpm install @lpm.dev/owner.package-name
-\`\`\`
-
-### From npm
-
-\`\`\`bash
-npm install package-name
-\`\`\`
-```
-
-### Import Paths
-
-Update any import examples in the README to use the new package name. Scan for patterns like:
-
-- `from "old-package-name"`
-- `require("old-package-name")`
-- `from "@old-scope/old-name"`
-
-## Step 5: Configure CI/CD
-
-### .npmrc Setup
-
-Create or update `.npmrc` for LPM registry:
-
-```ini
-//lpm.dev/:_authToken=${LPM_TOKEN}
-@lpm.dev:registry=https://lpm.dev/api/registry/
-```
-
-Generate it with `lpm setup ci npmrc` for CI or `lpm setup local -d 30` for local development.
-
-### GitHub Actions
-
-If `.github/workflows/` exists, offer to add an LPM publish step:
-
-```yaml
-- name: Publish to LPM
-  run: npx lpm publish
-  env:
-    LPM_TOKEN: ${{ secrets.LPM_TOKEN }}
-```
-
-### Environment Variables
-
-Remind the user to set `LPM_TOKEN` on their deployment platform:
-
-- **GitHub Actions**: Repository Settings → Secrets → `LPM_TOKEN`
-- **Vercel**: Project Settings → Environment Variables → `LPM_TOKEN`
-- **Netlify**: Site Settings → Environment Variables → `LPM_TOKEN`
-
-Get the token via `lpm token-rotate`, `lpm setup local`, or the LPM dashboard.
-
-For full CI/CD setup details, see [Deploy](./deploy.md).
+Keep npm publish credentials separate from lpm.dev credentials.
 
 ## Step 6: Verify
 
-After migration:
-
-1. Run `lpm publish --check` to see the quality score
-2. List any failed checks and offer to fix them (see [Improve](./improve.md))
-3. Print a migration summary:
-
-```
-Migration complete: package-name → @lpm.dev/owner.package-name
-
-Changes made:
-  ✓ package.json — name, homepage, exports, engines, files
-  ✓ README.md — updated install instructions
-  ✓ .npmrc — added LPM registry configuration
-
-Quality score: {score}/100 ({tier})
-
-Next steps:
-  1. Set LPM_TOKEN in your CI environment
-  2. Run "lpm publish" to publish your first version
-  3. (Optional) Run "improve package" to boost your quality score
-```
-
-## Migration Checklist
-
-- [ ] package.json name updated to `@lpm.dev/owner.package-name`
-- [ ] Missing quality fields added (exports, engines, files, sideEffects)
-- [ ] README install instructions updated
-- [ ] README import examples updated
-- [ ] .npmrc configured for LPM registry
-- [ ] CI/CD updated with LPM publish step (if applicable)
-- [ ] `LPM_TOKEN` environment variable documented
-- [ ] Types status assessed (has .d.ts, TypeScript, or JSDoc annotations)
-- [ ] Quality check passed (`lpm publish --check`)
+1. Run `lpm publish --check`. It reports archive points and a preflight percentage, not a final score out of 100. Checks that need Registry data run after publish. See [Quality Checks](../references/quality-checks.md).
+2. Offer to fix failing checks with [Improve](./improve.md).
+3. Summarize what changed and the next steps, such as the first `lpm publish` and CI setup.
 
 ## Important Notes
 
-- Never delete the existing npm package without explicit user approval
-- Preserve all existing package.json fields — only add/update, don't remove
-- For dual publishing, keep npm publish auth separate from lpm.dev install auth. `publish.npm.*` belongs in `lpm.json`; `@lpm.dev` install routing belongs in `.npmrc`
-- If the package has consumers, suggest a deprecation notice on npm pointing to the LPM version
-- Check that all dependencies are available (LPM packages or npm packages both work)
+- Never deprecate or delete the npm package without explicit approval. If it has consumers, suggest an npm deprecation notice that points to the LPM version.
+- New lpm.dev packages start as Private. Choosing Free, Pool or Marketplace is a separate, permanent decision; see [Distribution](./distribution.md).

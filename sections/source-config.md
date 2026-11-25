@@ -49,7 +49,7 @@ The author's `tsconfig` maps `@/*` to the package root, so a source file imports
 
 - **Make a choice `required` when copying every option would clash.** The two style configs above both write `styles/config.js`. Give a required field a `default` so `--yes` still works.
 - **Shared code goes in a rule without `include`**, which defaults to `always`. To leave files out, don't match them. `include: "never"` only turns off its own rule.
-- **`importAlias` must end with `/`** ([why](../references/config-spec.md#import-alias)). With no alias, use relative imports.
+- **End `importAlias` with `/` and map it to the tarball root** ([details](../references/config-spec.md#import-alias)). With no alias, use relative imports.
 - **Put an `lpm add <exact-name>` code block in the README.** It counts as the install example for source packages.
 - Unset keys, `dest`, and the `dependencies` fallback: see [config-spec.md](../references/config-spec.md).
 
